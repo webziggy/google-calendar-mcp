@@ -21,7 +21,7 @@ Because this MCP server is privacy-first, it runs entirely locally. You will nee
 ### Step 2.5: Publishing the App (Bypassing the 7-day limit)
 By default, "Testing" tokens expire every 7 days. To prevent this, you should click **Publish App** on the OAuth Consent Screen dashboard.
 * **Important:** Google requires an **Application home page** and an **Application privacy policy link** on the Branding page before it will let you publish. 
-* Since this is a personal, unverified app, you can simply paste the URL to your own GitHub repository for both fields to satisfy the form validator.
+* Since this is a personal, unverified app, you can use the link to your GitHub repository for the Homepage, and link directly to the `docs/privacy-policy.md` file in your repository for the Privacy Policy URL.
 * When you publish, Google will warn you that the app needs verification. You can **ignore the verification process** completely—as the developer, you can safely bypass the "Unverified App" warning when you log in.
 
 ## Step 3: Create Credentials
