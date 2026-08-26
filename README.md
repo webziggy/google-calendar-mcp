@@ -6,8 +6,16 @@ Designed specifically to allow AI agents to manage exact-time reminders, follow-
 
 ## Architecture
 This project is split into two phases:
-1. **`mcp-server/`**: A Node.js/TypeScript MCP server that exposes Google Calendar tools to any compatible AI.
+1. **`mcp-server/`** *(Completed)*: A Node.js/TypeScript MCP server that exposes Google Calendar tools to any compatible AI.
 2. **`gui-app/`** *(Upcoming)*: A companion Flutter desktop application providing a native visual dashboard and Markdown clipboard interoperability.
+
+## Available Tools (MCP)
+The following tools are exposed to AI agents via the MCP server:
+- `list_calendars`: Retrieve all calendars available to the user.
+- `list_events`: Fetch events for a specific calendar within an optional time range.
+- `create_event`: Create an event/reminder with exact start/end times and inject hidden AI metadata natively.
+- `update_event`: Modify an existing event (uses safe read-modify-write).
+- `delete_event`: Remove an event from the calendar.
 
 ## Documentation
 - [Authentication Guide](docs/authentication.md) - How to set up Google Cloud credentials and generate your local tokens.
