@@ -1,9 +1,24 @@
 import { google } from 'googleapis';
-import dotenv from 'dotenv';
 import * as path from 'path';
+import * as fs from 'fs';
 
-// Ensure environment variables are loaded
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Safely load .env without noisy stdout ads that corrupt MCP
+try {
+  const envPath = path.resolve(process.cwd(), '.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const match = line.match(/^([^=]+)=(.*)$/);
+      if (match) {
+        const key = match[1].trim();
+        const val = match[2].trim();
+        if (!process.env[key]) process.env[key] = val;
+      }
+    });
+  }
+} catch (e) {
+  // Ignore missing .env
+}
 
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
