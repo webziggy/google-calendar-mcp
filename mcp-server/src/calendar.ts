@@ -17,6 +17,20 @@ export async function listCalendars() {
 }
 
 /**
+ * Creates a new, dedicated calendar.
+ */
+export async function createCalendar(summary: string, description?: string) {
+  const calendar = getCalendarClient();
+  const res = await calendar.calendars.insert({
+    requestBody: {
+      summary,
+      description,
+    },
+  });
+  return res.data;
+}
+
+/**
  * Lists events for a specific calendar within an optional time range.
  */
 export async function listEvents(calendarId: string, timeMin?: string, timeMax?: string) {

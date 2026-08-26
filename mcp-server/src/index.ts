@@ -3,6 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
   listCalendars,
+  createCalendar,
   listEvents,
   createEvent,
   updateEvent,
@@ -29,6 +30,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "list_calendars",
         description: "List all Google Calendars available to the user.",
         inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "create_calendar",
+        description: "Create a new, dedicated Google Calendar.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" }
+          },
+          required: ["title"],
+        },
       },
       {
         name: "list_events",
@@ -108,6 +121,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "list_calendars": {
         const calendars = await listCalendars();
         return { content: [{ type: "text", text: JSON.stringify(calendars, null, 2) }] };
+      }
+      
+      case "create_calendar": {
+        const { title, description } = request.params.arguments as any;
+        const calendar = await createCalendar(title, description);
+        return { content: [{ type: "text", text: JSON.stringify(calendar, null, 2) }] };
       }
       
       case "list_events": {
