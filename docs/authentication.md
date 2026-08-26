@@ -26,12 +26,12 @@ Because this MCP server is privacy-first, it runs entirely locally. You will nee
 5. Click Create. You will receive a **Client ID** and **Client Secret**.
 
 ## Step 4: Configure the Server
-1. In the `mcp-server/` folder, create a `.env` file (if it doesn't exist).
-2. Add your credentials:
-   ```env
-   GOOGLE_CLIENT_ID=your_client_id_here
-   GOOGLE_CLIENT_SECRET=your_client_secret_here
+1. Download the JSON file containing your credentials.
+2. From the root of the project, run our automated setup script and pass it the path to your downloaded JSON file:
+   ```bash
+   ./tools/setup-env.sh ~/Downloads/client_secret_YOUR_CLIENT_ID.json
    ```
+*(Note: You can run `./tools/setup-env.sh --help` to see all available options, or run it without arguments to paste the IDs manually).*
 
 ## Step 5: Generate the Token
 1. Open your terminal and navigate to the `mcp-server/` folder.
