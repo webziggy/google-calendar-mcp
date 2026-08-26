@@ -11,7 +11,11 @@ Because this MCP server is privacy-first, it runs entirely locally. You will nee
 1. Navigate to **APIs & Services > OAuth consent screen**.
 2. Choose **External** (or Internal if you have a Google Workspace account) and click Create.
 3. Fill in the required fields (App name, support email). You can skip the domain fields.
-4. **Scopes:** Click "Add or Remove Scopes" and add the Google Calendar API (`https://www.googleapis.com/auth/calendar`).
+4. **Scopes:** 
+   - Click the **"Add or Remove Scopes"** button.
+   - In the filter box, search for **Google Calendar API**.
+   - Check the box next to the scope with this exact URL: `https://www.googleapis.com/auth/calendar` *(Description: "See, edit, share, and permanently delete all the calendars...")*.
+   - Click **Update**.
 5. **Test Users:** Because your app will stay in "Testing" mode, you **must add your own Google email address** to the Test Users list.
 
 ## Step 3: Create Credentials
