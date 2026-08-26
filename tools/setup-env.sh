@@ -4,13 +4,27 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$DIR/../mcp-server" || exit
 
+if [[ "$1" == "-h" || "$1" == "--help" || "$1" == "-help" ]]; then
+    echo "Usage: ./tools/setup-env.sh [path/to/client_secret.json]"
+    echo ""
+    echo "This script securely extracts Google OAuth credentials and writes them"
+    echo "to the mcp-server/.env file."
+    echo ""
+    echo "Options:"
+    echo "  -h, --help    Show this help message"
+    echo ""
+    echo "If no file is provided, you will be prompted to enter the Client ID"
+    echo "and Client Secret manually."
+    exit 0
+fi
+
 echo "Google Cloud Credentials Setup"
 echo "------------------------------"
 
 if [ -n "$1" ]; then
     if [ -f "$1" ]; then
         echo "Extracting credentials from $1..."
-        # Using Python to safely parse JSON since it's pre-installed on macOS (avoids needing jq)
+        # Using Python to safely parse JSON since it's pre-installed on macOS
         cid=$(python3 -c "import sys, json; print(json.load(open(sys.argv[1]))['web'].get('client_id', ''))" "$1")
         csec=$(python3 -c "import sys, json; print(json.load(open(sys.argv[1]))['web'].get('client_secret', ''))" "$1")
         
