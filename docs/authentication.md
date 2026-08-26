@@ -16,7 +16,13 @@ Because this MCP server is privacy-first, it runs entirely locally. You will nee
    - In the filter box, search for **Google Calendar API**.
    - Check the box next to the scope with this exact URL: `https://www.googleapis.com/auth/calendar` *(Description: "See, edit, share, and permanently delete all the calendars...")*.
    - Click **Update**.
-5. **Test Users:** Because your app will stay in "Testing" mode, you **must add your own Google email address** to the Test Users list.
+5. **Test Users:** Because your app starts in "Testing" mode, you **must add your own Google email address** to the Test Users list.
+
+### Step 2.5: Publishing the App (Bypassing the 7-day limit)
+By default, "Testing" tokens expire every 7 days. To prevent this, you should click **Publish App** on the OAuth Consent Screen dashboard.
+* **Important:** Google requires an **Application home page** and an **Application privacy policy link** on the Branding page before it will let you publish. 
+* Since this is a personal, unverified app, you can simply paste the URL to your own GitHub repository for both fields to satisfy the form validator.
+* When you publish, Google will warn you that the app needs verification. You can **ignore the verification process** completely—as the developer, you can safely bypass the "Unverified App" warning when you log in.
 
 ## Step 3: Create Credentials
 1. Navigate to **APIs & Services > Credentials**.
