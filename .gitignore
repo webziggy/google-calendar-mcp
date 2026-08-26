@@ -1,0 +1,15 @@
+# Node
+node_modules/
+dist/
+build/
+npm-debug.log*
+
+# Env/Secrets
+.env
+.env.*
+credentials.json
+token.json
+*.pem
+
+# OS
+.DS_Store
