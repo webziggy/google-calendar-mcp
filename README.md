@@ -25,3 +25,7 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 
 ### Schema Documentation
 - [AI Metadata Schema](docs/ai-metadata-schema.md) - Documentation on how we store and version the hidden AI data payloads.
+
+### Agent Usage Guidelines
+- **Pagination Limit:** Agents are strictly instructed not to paginate through `list_events` more than 3 times without explicit user consent to prevent API rate limits and timeouts.
+- **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.

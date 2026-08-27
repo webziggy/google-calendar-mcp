@@ -23,3 +23,6 @@
 # Payload Versioning
 
 - **Semantic Versioning:** Always use strict Semantic Versioning (SemVer: `MAJOR.MINOR.PATCH`, e.g., `0.1.0`) when versioning AI data schemas or JSON payloads. Avoid arbitrary string tags so that agents can reliably compute version comparisons.
+
+# Pagination & Large Datasets
+- **Rate Limiting / Timeout Protection:** When using the `list_events` tool, you will receive a `nextPageToken` if there are more events. Do **NOT** blindly paginate more than 3 times in a single loop. If the dataset requires more than 3 pages, stop and ask the user for permission (warning them that the dataset is large) to prevent tool timeouts and API rate limits.
