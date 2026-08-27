@@ -37,6 +37,17 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 - **Pagination Limit:** Agents are strictly instructed not to paginate through `list_events` more than 3 times without explicit user consent to prevent API rate limits and timeouts.
 - **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.
 
+## Handling Multiple Accounts (Personal + Work)
+Many users need to manage both a personal Google Calendar and an enterprise Google Workspace calendar. 
+
+**Architectural Decision:** We intentionally enforce a "Single-Tenant, Zero-Code" architecture. Instead of configuring multiple OAuth tokens in the MCP server, you should use Google Calendar's native sharing features. Share your Work calendar with your Personal email address (or vice-versa). 
+
+**Why we chose this approach:**
+1. **IT Compliance:** It respects your employer's Google Workspace permissions. If IT blocks external sharing, the AI cannot bypass that firewall.
+2. **Native Role-Based Access (RBAC):** The Google API inherently returns an `accessRole` (`owner`, `writer`, `reader`) for shared calendars. The agent natively parses this, knowing instantly if it can schedule meetings on your Work calendar or only read them.
+3. **Zero Context-Switching:** You only authenticate the MCP server once. The AI sees a unified timeline across all your identities and can perform cross-calendar conflict resolution seamlessly.
+
+
 ## Usage Examples (Natural Language)
 > **Note:** By default, the assistant is trained to search your "Home" calendar. If you want it to look at a different calendar, just mention it by name (e.g., *"When am I free on my Work calendar this afternoon?"*).
 
