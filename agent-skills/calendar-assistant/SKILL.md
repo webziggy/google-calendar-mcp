@@ -8,6 +8,9 @@ description: Natural language workflows for querying, scheduling, and modifying 
 This skill teaches the agent how to natively handle common natural language requests ("What's my next meeting?", "Do I have a sync with Bob?", "Where is the Teams link?") using the local Google Calendar MCP Server.
 
 ## 1. Core Guidelines
+- **Preferences Sync (Create/Delete):** If you use the `create_calendar` or `delete_calendar` tools, you MUST immediately update the local `calendar_preferences.md` file to reflect the change. (If creating, assign it a logical category based on context).
+- **Drift Detection (Unknown Calendars):** Whenever you call `list_calendars`, cross-reference the output with the `calendar_preferences.md` file. If you detect a calendar that is missing from the file (likely created outside the MCP), you must pause your current workflow and initiate a brief "partial calendar setup" to ask the user how to categorize the new calendar before proceeding.
+
 - **Never Schedule Blindly (Conflict Resolution):** Before calling `create_event` or `update_event`, ALWAYS call `list_events` for that timeframe. If there is a conflict, do not schedule. Calculate the next available 30-minute block and propose it to the user.
 - **Timezone Confirmation:** If you haven't scheduled anything recently, explicitly state the timezone you *assume* the user is in (e.g., "I'll schedule this in BST...") to give them a chance to correct you. Always perform strict timezone math if they request a foreign timezone.
 - **Recurring Event Instance Safety:** When modifying or deleting an event, ensure you are interacting with the specific *instance ID* (which `list_events` provides when `singleEvents: true` is set), not the parent series ID, unless explicitly asked to modify the entire series.

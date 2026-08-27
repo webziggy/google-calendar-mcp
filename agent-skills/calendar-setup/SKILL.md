@@ -5,18 +5,33 @@ description: An onboarding workflow to categorize calendars, define working hour
 
 # Calendar Setup & Onboarding
 
-Run this skill when a user asks to set up, configure, or calibrate their calendar preferences.
+Run this skill when a user asks to set up, configure, or calibrate their calendar preferences, OR when a new, uncategorized calendar is detected.
 
-## Workflow
-1. **Fetch Calendars:** Call `list_calendars` to get all calendars available to the MCP server.
-2. **The Interview:** Engage the user in an interactive chat. Present their calendars and ask:
-   - Which ones are for **Work**?
-   - Which ones are for **Personal**?
-   - Which ones are **Read-Only / Holidays**?
-   - Which ones should be completely **Ignored**?
-3. **Working Hours:** Ask the user to define their working routine. 
-   - *Never assume 9-5.* Ask when their day starts/ends, which days they work, and what timezone they consider their "base".
-   - Ask if they have protected break preferences (e.g., "Always block 1 hour for lunch between 12-2 PM").
-4. **Save Configuration:** Compile all of these preferences into a well-formatted markdown file and use `write_to_file` to save it to `calendar_preferences.md` in the current workspace.
+## 1. The Interview Workflow
+1. **Fetch Calendars:** Call `list_calendars` to get all available calendars.
+2. **Categorization:** Ask the user to categorize each calendar (Work, Personal, Read-Only, Ignore). *If this is a partial setup for a newly discovered calendar, only ask about the new one.*
+3. **Working Hours:** Ask the user to define their working routine (Start/End times, Timezone, Work Days, Protected Breaks like lunch).
 
-Other skills (like `calendar-assistant` and `daily-briefing`) will natively read this file to inform their logic.
+## 2. Configuration Schema
+You must save the output exactly in this format using `write_to_file` to `calendar_preferences.md` in the current workspace. This file is designed to be easily machine-readable by you, and easily hand-editable by the user.
+
+```markdown
+# Calendar Preferences
+
+## Routine
+- **Timezone:** Europe/London
+- **Work Days:** Monday, Tuesday, Wednesday, Thursday, Friday
+- **Work Hours:** 09:00 - 17:30
+- **Protected Breaks:** 12:30 - 13:30 (Lunch)
+
+## Calendars
+| ID | Name | Category |
+|---|---|---|
+| primary | Home | Personal |
+| 12345@group.calendar.google.com | Work Meetings | Work |
+| 67890@group.calendar.google.com | UK Holidays | Read-Only |
+| 09876@group.calendar.google.com | Spam Calendar | Ignore |
+```
+
+## 3. Manual Editing
+Always inform the user that `calendar_preferences.md` is a living document. They can open the file in their editor and change their hours or categories at any time, and you will natively adapt to the new settings on your next run.
