@@ -7,7 +7,7 @@ export interface AIMetadata {
   [key: string]: string | undefined;
 }
 
-const DEFAULT_ALLOWED_FIELDS = ['id', 'summary', 'description', 'start', 'end', 'extendedProperties', 'status', 'htmlLink'];
+const DEFAULT_ALLOWED_FIELDS = ['id', 'summary', 'description', 'location', 'start', 'end', 'attendees', 'conferenceData', 'extendedProperties', 'status', 'htmlLink'];
 
 function filterEventFields(event: calendar_v3.Schema$Event, allowedFields = DEFAULT_ALLOWED_FIELDS) {
   const slimEvent: any = {};
