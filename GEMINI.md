@@ -24,5 +24,8 @@
 
 - **Semantic Versioning:** Always use strict Semantic Versioning (SemVer: `MAJOR.MINOR.PATCH`, e.g., `0.1.0`) when versioning AI data schemas or JSON payloads. Avoid arbitrary string tags so that agents can reliably compute version comparisons.
 
-# Pagination & Large Datasets
-- **Rate Limiting / Timeout Protection:** When using the `list_events` tool, you will receive a `nextPageToken` if there are more events. Do **NOT** blindly paginate more than 3 times in a single loop. If the dataset requires more than 3 pages, stop and ask the user for permission (warning them that the dataset is large) to prevent tool timeouts and API rate limits.
+# MCP Tool Design: Pagination & Timeouts
+
+- **Expose Pagination to AI:** When building MCP tools that fetch lists or query APIs, NEVER use internal `do/while` loops to fetch all pages in a single tool execution. Always expose pagination (e.g., `pageToken`, `limit`, `offset`) as arguments in the tool schema.
+- **Why?** Internal loops can run for 30+ seconds, causing fatal timeouts and leaving the user completely blind to progress. Forcing the AI to paginate manually via multiple sequential tool calls naturally communicates progress to the user via the chat UI.
+- **Agent Self-Regulation:** When an agent is manually paginating via an MCP tool, it must act as a circuit breaker. Do not automatically paginate more than 3 times in a row. If the dataset requires more pages, stop and prompt the user for explicit permission to continue fetching.
