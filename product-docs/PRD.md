@@ -70,7 +70,14 @@ The true power of this system lies in the `ext_payload` JSON. Standard calendar 
 2. **Bypasses the 44-Character Limit:** Google Calendar restricts keys to 44 characters. Flattening extension properties (e.g., `ext_helloworld_thread_id`) risks hitting this limit. By storing stringified JSON inside `ext_[id]`, we keep keys short and leverage the much larger 1024-character value limit.
 3. **Implicit Registry:** We don't even need a `core_extensions` routing table. The presence of the `ext_crm` key inherently tells the Flutter app and other agents exactly which extensions are attached to the event!
 
-## 5. Dual-Layered Data (Hidden State vs Visible Log)
+## 5. Global State & Preferences Engine
+To ensure true autonomy, the MCP server acts as the central source of truth for agent configuration. Instead of relying on transient chat context, the server exposes `read_calendar_preferences` and `write_calendar_preferences` tools. These manage a global `calendar_preferences.md` file stored within the server itself. This file tracks Working Hours, Protected Breaks, Category mappings (Work/Personal), and explicit `accessRole` mappings to prevent illegal API mutations.
+
+## 6. Multi-Account Philosophy (Zero-Code)
+The system enforces a "Single-Tenant" OAuth model. To manage multiple accounts (e.g., Personal + Enterprise Workspace), users rely on native Google Calendar sharing. This respects strict IT firewalls while allowing the AI to natively parse the `accessRole` (Reader/Writer) of shared calendars, granting it full cross-calendar conflict resolution without complex multi-tenant token management.
+
+
+## 7. Dual-Layered Data (Hidden State vs Visible Log)
 To ensure the calendar remains human-readable without risking corruption to the JSON state:
 - **Machine State (Hidden):** All core logic, IDs, and complex structures are stored exclusively in `extendedProperties.private` (subject to 44/1024 char limits).
 - **Audit Log (Visible):** The event `description` field is strictly reserved as a human-readable audit log. AI agents use the `add_event_log` tool to append timestamped updates.
