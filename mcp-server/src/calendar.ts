@@ -90,6 +90,20 @@ export async function listEvents(
 const SCHEMA_VERSION = "0.1.0";
 
 /**
+ * Validates metadata against Google Calendar's strict API limits.
+ */
+function validateMetadataLimits(metadata: Record<string, string>) {
+  for (const [key, value] of Object.entries(metadata)) {
+    if (key.length > 44) {
+      throw new Error(`Metadata key '${key}' exceeds Google Calendar's 44-character limit.`);
+    }
+    if (value && value.length > 1024) {
+      throw new Error(`Metadata value for '${key}' exceeds Google Calendar's 1024-character limit. Compress your JSON payload.`);
+    }
+  }
+}
+
+/**
  * Creates a new event with native support for exact times and hidden AI metadata.
  */
 export async function createEvent(
@@ -127,6 +141,9 @@ export async function createEvent(
       _schema_version: SCHEMA_VERSION
     }
   };
+  if (event.extendedProperties.private) {
+    validateMetadataLimits(event.extendedProperties.private as Record<string, string>);
+  }
 
   const res = await calendar.events.insert({
     calendarId,
@@ -174,6 +191,8 @@ export async function updateEvent(
 
   event.extendedProperties = event.extendedProperties || {};
   event.extendedProperties.private = mergedMetadata;
+
+  validateMetadataLimits(event.extendedProperties.private as Record<string, string>);
 
   const res = await calendar.events.update({
     calendarId,

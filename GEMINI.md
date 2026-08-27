@@ -29,3 +29,6 @@
 - **Expose Pagination to AI:** When building MCP tools that fetch lists or query APIs, NEVER use internal `do/while` loops to fetch all pages in a single tool execution. Always expose pagination (e.g., `pageToken`, `limit`, `offset`) as arguments in the tool schema.
 - **Why?** Internal loops can run for 30+ seconds, causing fatal timeouts and leaving the user completely blind to progress. Forcing the AI to paginate manually via multiple sequential tool calls naturally communicates progress to the user via the chat UI.
 - **Agent Self-Regulation:** When an agent is manually paginating via an MCP tool, it must act as a circuit breaker. Do not automatically paginate more than 3 times in a row. If the dataset requires more pages, stop and prompt the user for explicit permission to continue fetching.
+
+# Extension Design & Constraints
+- **Payload Limits:** Google Calendar limits hidden metadata keys to 44 characters and values to 1024 characters. When writing a new skill that uses `ext_[id]`, never attempt to store raw blobs (e.g., entire file contents or email chains). You must only store IDs, paths, or URLs, and dynamically fetch the heavy content when needed.
