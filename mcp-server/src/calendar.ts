@@ -93,6 +93,11 @@ const SCHEMA_VERSION = "0.1.0";
  * Validates metadata against Google Calendar's strict API limits.
  */
 function validateMetadataLimits(metadata: Record<string, string>) {
+  const keys = Object.keys(metadata);
+  if (keys.length > 300) {
+    throw new Error(`Metadata exceeds Google Calendar's limit of 300 keys per event (currently at ${keys.length}).`);
+  }
+
   for (const [key, value] of Object.entries(metadata)) {
     if (key.length > 44) {
       throw new Error(`Metadata key '${key}' exceeds Google Calendar's 44-character limit.`);
@@ -100,8 +105,9 @@ function validateMetadataLimits(metadata: Record<string, string>) {
     if (value && value.length > 1024) {
       throw new Error(`Metadata value for '${key}' exceeds Google Calendar's 1024-character limit. Compress your JSON payload.`);
     }
-  }
 }
+
+  }
 
 /**
  * Creates a new event with native support for exact times and hidden AI metadata.
