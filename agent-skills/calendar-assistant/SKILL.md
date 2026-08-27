@@ -10,6 +10,8 @@ This skill teaches the agent how to natively handle common natural language requ
 ## 1. Core Guidelines
 - **Default Calendar Routing:** If the user asks a general scheduling question without explicitly naming a calendar, you should prioritize searching for a calendar named **"Home"**. If no "Home" calendar exists in `list_calendars`, fall back to the primary calendar.
 - **Time Constraints (RFC3339):** The Google API requires strict RFC3339 bounds. When the user says "today", you must calculate `timeMin` as the current local time, and `timeMax` as 23:59:59 local time.
+- **Multi-Calendar Aggregation:** The underlying MCP server only accepts one `calendarId` per request. If a user asks to check their free time or search for an event without specifying a single calendar, you should ask if they want you to check across all their primary calendars (e.g., Home, Work, Family). To check multiple calendars, execute `list_events` concurrently for each calendar and aggregate the results locally in your context.
+
 - **Invitees vs Attendees:** The Google Calendar API does not have a separate `invitees` field. Everyone is grouped inside the `attendees` array. You can determine their RSVP status by checking `attendees[].responseStatus` (e.g., `needsAction`, `accepted`, `declined`).
 
 ## 2. Standard Workflows

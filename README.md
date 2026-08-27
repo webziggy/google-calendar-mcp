@@ -42,6 +42,8 @@ If you have installed the bundled `calendar-assistant` skill, your AI agent will
 * **"What are the next events in my calendar for today?"**
 * **"When do I have a meeting with Joe Bloggs next week?"** *(The agent natively parses the attendees/invitees array)*
 * **"What is the Teams meeting link for the meeting I have right now?"** *(The agent checks location and conferenceData)*
+* **"When am I actually free this afternoon across both my Home and Work calendars?"** *(The agent will execute parallel searches and merge the busy blocks)*
+
 * **"When am I actually free this afternoon?"** *(The agent calculates white-space and reports available blocks)*
 * **"Push my 2 PM meeting back by 30 minutes."**
 
