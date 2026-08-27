@@ -34,6 +34,16 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 - **Pagination Limit:** Agents are strictly instructed not to paginate through `list_events` more than 3 times without explicit user consent to prevent API rate limits and timeouts.
 - **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.
 
+## Usage Examples (Natural Language)
+If you have installed the bundled `calendar-assistant` skill, your AI agent will be able to handle natural language queries like a native personal assistant. Try asking your agent:
+
+* **"What are the next events in my calendar for today?"**
+* **"When do I have a meeting with Joe Bloggs next week?"** *(The agent natively parses the attendees/invitees array)*
+* **"What is the Teams meeting link for the meeting I have right now?"** *(The agent checks location and conferenceData)*
+* **"When am I actually free this afternoon?"** *(The agent calculates white-space and reports available blocks)*
+* **"Push my 2 PM meeting back by 30 minutes."**
+
+
 ## Required Agent Skills
 
 Because raw MCP tools are powerful, this repository bundles **Agent Skills** that enforce behavioral safety guardrails (e.g., double-confirming before an AI touches your primary "Home" calendar). 
@@ -42,6 +52,8 @@ If you are setting up this MCP server on your own device, you **must** install t
 
 **Available Bundled Skills:**
 - `link-calendar`: Prevents the AI from blindly picking standard calendars (Home, Birthdays) without double confirmation.
+- `calendar-assistant`: Teaches the AI how to translate natural language queries into specific MCP tool actions, including attendee parsing and white-space finding.
+
 
 **How to Install (Antigravity):**
 You can install these skills globally or per-workspace. To install them into your global Antigravity configuration:
