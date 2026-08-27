@@ -4,11 +4,29 @@
 To build a privacy-first, extensible bridge between AI agents and Google Calendar. By leveraging hidden metadata (`extendedProperties.private`), this system allows AI agents to schedule, track, and resume complex asynchronous workflows (CRM, CI/CD, project management) without cluttering the user's visible calendar.
 
 ## 2. Phased Architecture
+- **Phase 2 (Frontend - Upcoming):** A dedicated macOS Flutter companion app designed strictly as an "AI Workflow Dashboard".
+
+### Phase 2: Flutter Companion App (Sub-PRD)
+The Flutter app is not a generic calendar replacement. It is a specialized, menu-bar anchored dashboard for interacting with asynchronous AI workflows stored in Google Calendar.
+
+**1. Form Factor & Routing (Menu Bar App)**
+* **The Mini-Dashboard:** The app lives primarily as a macOS System Tray / Menu Bar icon (using `tray_manager`). Clicking it drops down a sleek, frameless timeline.
+* **The Full Window:** A "Pop Out" button detaches the dashboard into a standard resizable macOS window for heavier planning and settings configuration.
+
+**2. AI-Managed Calendar Filtering**
+* To avoid cluttering the UI with standard human meetings, the app reads the MCP server's `calendar_preferences.md` file. It exclusively polls and renders events from calendars strictly categorized as `AI-Managed`.
+
+**3. Augmented UI Features**
+* **Metadata Rendering:** Automatically decodes `ext_[id]` JSON payloads and renders them as beautiful cards (e.g., Jira tickets, Snoozed Contexts).
+* **Audit Log Viewer:** Parses `[YYYY-MM-DD][AI]` log lines from the event description and renders them as a clean Chat/Timeline UI.
+* **Context Resumption (1-Click Copy):** For "Snoozed" workflows, clicking an event instantly copies a formatted prompt or `conversation_id` to the macOS clipboard, allowing the user to paste it into their LLM to instantly resume a suspended workflow.
+
+**4. Smart DND Engine & "Quick Focus"**
+* **Routine DND:** Reads `calendar_preferences.md` to inherently silence non-critical macOS notifications outside of defined working hours.
+* **Ad-Hoc DND:** Dynamically monitors the user's designated `Focus/Break Calendar`. If an active event is occurring on that calendar, the app instantly enters DND mode, acting as an OS-level mute switch.
+* **Quick Focus Toggle:** A massive button in the menu bar dropdown that instantly injects a 1-hour block onto the Focus calendar via the API, immediately triggering Ad-Hoc DND.
+
 - **Phase 1 (Backend - Active):** A local Model Context Protocol (MCP) server written in Node.js/TypeScript. Exposes safe, paginated, and rate-limited calendar tools to any compatible AI agent.
-- **Phase 2 (Frontend - Upcoming):** A Flutter macOS companion desktop app. Provides a visual dashboard to monitor AI-managed events, filter by use-case, and easily copy/paste Markdown representations.
-  - **Smart Do Not Disturb (DND) Engine:** The app will manage native macOS notifications intelligently. It will read `calendar_preferences.md` to silence non-critical notifications outside of Working Hours (Routine DND). Furthermore, if an event is currently active on the user's designated Focus/Break Calendar, the app will enter Ad-Hoc DND mode and queue notifications until the focus block is over.
-
-
 ## 3. Core Use Cases (Agent Workflows)
 
 The true power of this system lies in the `ext_payload` JSON. Standard calendar apps cannot store structured data without cluttering the visible description field. By using hidden metadata, AI agents can execute the following workflows:
