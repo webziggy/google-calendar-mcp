@@ -17,7 +17,7 @@ export async function listCalendars() {
 }
 
 /**
- * Creates a new, dedicated calendar.
+ * Creates a new, dedicated calendar and injects a warning event.
  */
 export async function createCalendar(summary: string, description?: string) {
   const calendar = getCalendarClient();
@@ -27,23 +27,64 @@ export async function createCalendar(summary: string, description?: string) {
       description,
     },
   });
+  
+  const newCalendarId = res.data.id;
+  if (newCalendarId) {
+    // Create an all-day warning event that repeats yearly
+    const today = new Date().toISOString().split('T')[0];
+    await calendar.events.insert({
+      calendarId: newCalendarId,
+      requestBody: {
+        summary: '⚠️ AI Managed Calendar - Edit with Caution',
+        description: 'This calendar is managed by an AI agent via Model Context Protocol. Manual edits to events may disrupt the agent\'s tracking.',
+        start: { date: today },
+        end: { date: today },
+        recurrence: ['RRULE:FREQ=YEARLY']
+      }
+    });
+  }
+  
   return res.data;
 }
 
 /**
- * Lists events for a specific calendar within an optional time range.
+ * Retrieves the timezone for a given calendar to use as a fallback.
  */
-export async function listEvents(calendarId: string, timeMin?: string, timeMax?: string) {
+async function getCalendarTimezone(calendarId: string): Promise<string> {
   const calendar = getCalendarClient();
+  const res = await calendar.calendars.get({ calendarId });
+  return res.data.timeZone || 'UTC';
+}
+
+/**
+ * Lists events for a specific calendar.
+ * Exposes pageToken so the calling AI can paginate manually, preventing tool timeouts
+ * and allowing the user to see progress via multiple tool calls in the chat.
+ */
+export async function listEvents(
+  calendarId: string, 
+  timeMin?: string, 
+  timeMax?: string, 
+  pageToken?: string,
+  maxResults: number = 100
+) {
+  const calendar = getCalendarClient();
+  
   const res = await calendar.events.list({
     calendarId,
-    timeMin: timeMin || (new Date()).toISOString(),
-    timeMax,
-    maxResults: 100,
+    // If timeMin is omitted, don't default to now (allows fetching past events).
+    timeMin: timeMin,
+    timeMax: timeMax,
+    maxResults,
     singleEvents: true, // Expands recurring events into single instances
     orderBy: 'startTime',
+    pageToken: pageToken
   });
-  return res.data.items || [];
+
+  return {
+    events: res.data.items || [],
+    nextPageToken: res.data.nextPageToken
+  };
 }
 
 const SCHEMA_VERSION = "0.1.0";
@@ -68,8 +109,9 @@ export async function createEvent(
   };
 
   if (startTime && endTime) {
-    event.start = { dateTime: startTime, timeZone };
-    event.end = { dateTime: endTime, timeZone };
+    const tz = timeZone || await getCalendarTimezone(calendarId);
+    event.start = { dateTime: startTime, timeZone: tz };
+    event.end = { dateTime: endTime, timeZone: tz };
   } else {
     const today = new Date().toISOString().split('T')[0];
     event.start = { date: today };
@@ -118,8 +160,9 @@ export async function updateEvent(
   if (updates.description !== undefined) event.description = updates.description;
   
   if (updates.startTime && updates.endTime) {
-    event.start = { dateTime: updates.startTime, timeZone: updates.timeZone };
-    event.end = { dateTime: updates.endTime, timeZone: updates.timeZone };
+    const tz = updates.timeZone || event.start?.timeZone || await getCalendarTimezone(calendarId);
+    event.start = { dateTime: updates.startTime, timeZone: tz };
+    event.end = { dateTime: updates.endTime, timeZone: tz };
   }
 
   // Merge AI Metadata safely and re-stamp the schema version
