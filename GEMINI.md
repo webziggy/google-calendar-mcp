@@ -13,3 +13,13 @@
 
 - **Schema Checking:** When reading payloads (such as the hidden `extendedProperties.private` in calendar events), always check the `_schema_version`.
 - **Conflict Resolution:** If you encounter a legacy schema version and there is *any* ambiguity or conflict on how to map it to the current version, DO NOT guess or forcefully overwrite the data. You must explicitly prompt the user for instructions on how they would like to handle or upgrade the legacy payload.
+
+# MCP Execution & Stream Hygiene
+
+- **No Wrappers:** Never configure an MCP server to run via `npm run`, `npx`, or loaders like `tsx` in production configurations (e.g., `mcp_config.json`). These wrappers pollute standard output (`stdout`) with status messages, which instantly corrupts the JSON-RPC stream.
+- **Compile to Raw JS:** Always compile TypeScript MCP servers down to raw JavaScript (e.g., `build/index.js`) and execute them using pure `node`.
+- **Silent Dependencies:** Avoid dependencies (like standard `dotenv` CLI loaders) that inject initialization logs or sponsor ads into `stdout`. If needed, parse `.env` files natively.
+
+# Payload Versioning
+
+- **Semantic Versioning:** Always use strict Semantic Versioning (SemVer: `MAJOR.MINOR.PATCH`, e.g., `0.1.0`) when versioning AI data schemas or JSON payloads. Avoid arbitrary string tags so that agents can reliably compute version comparisons.
