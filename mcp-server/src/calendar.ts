@@ -46,6 +46,8 @@ export async function listEvents(calendarId: string, timeMin?: string, timeMax?:
   return res.data.items || [];
 }
 
+const SCHEMA_VERSION = "0.1-draft";
+
 /**
  * Creates a new event with native support for exact times and hidden AI metadata.
  */
@@ -65,7 +67,6 @@ export async function createEvent(
     description: description,
   };
 
-  // If exact times are provided, use dateTime. Otherwise, default to an all-day event today.
   if (startTime && endTime) {
     event.start = { dateTime: startTime, timeZone };
     event.end = { dateTime: endTime, timeZone };
@@ -76,11 +77,14 @@ export async function createEvent(
   }
 
   // Inject our native hidden metadata using extendedProperties.private
-  if (aiMetadata) {
-    event.extendedProperties = {
-      private: aiMetadata as Record<string, string>
-    };
-  }
+  // and automatically append the schema version for forward compatibility.
+  const baseMetadata = (aiMetadata || {}) as Record<string, string>;
+  event.extendedProperties = {
+    private: {
+      ...baseMetadata,
+      _schema_version: SCHEMA_VERSION
+    }
+  };
 
   const res = await calendar.events.insert({
     calendarId,
@@ -107,11 +111,9 @@ export async function updateEvent(
 ) {
   const calendar = getCalendarClient();
   
-  // 1. Fetch existing event first to avoid clobbering
   const existing = await calendar.events.get({ calendarId, eventId });
   const event = existing.data;
 
-  // 2. Apply updates
   if (updates.title) event.summary = updates.title;
   if (updates.description !== undefined) event.description = updates.description;
   
@@ -120,14 +122,15 @@ export async function updateEvent(
     event.end = { dateTime: updates.endTime, timeZone: updates.timeZone };
   }
 
-  // 3. Merge AI Metadata safely
-  if (updates.aiMetadata) {
-    event.extendedProperties = event.extendedProperties || {};
-    event.extendedProperties.private = {
-      ...event.extendedProperties.private,
-      ...(updates.aiMetadata as Record<string, string>)
-    };
-  }
+  // Merge AI Metadata safely and re-stamp the schema version
+  const mergedMetadata = {
+    ...(event.extendedProperties?.private || {}),
+    ...(updates.aiMetadata as Record<string, string> || {}),
+    _schema_version: SCHEMA_VERSION
+  };
+
+  event.extendedProperties = event.extendedProperties || {};
+  event.extendedProperties.private = mergedMetadata;
 
   const res = await calendar.events.update({
     calendarId,

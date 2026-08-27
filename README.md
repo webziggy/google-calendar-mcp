@@ -22,3 +22,6 @@ The following tools are exposed to AI agents via the MCP server:
 
 ## Privacy First
 All credentials are stored strictly in local `.env` files. No third-party gateways or cloud services are used to manage your tokens.
+
+### Schema Documentation
+- [AI Metadata Schema](docs/ai-metadata-schema.md) - Documentation on how we store and version the hidden AI data payloads.
