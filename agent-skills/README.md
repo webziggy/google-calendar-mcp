@@ -18,6 +18,8 @@ Enforces safety constraints to ensure agents don't blindly schedule events on yo
 Teaches your AI how to handle natural language scheduling queries. Includes workflows for finding free time ("When am I free?"), locating people/invitees in the attendees array, finding Teams/Zoom links, and modifying existing events.
 
 ### 3. `calendar-setup`
+An interactive onboarding workflow. The AI will pull your available calendars, ask you to categorize them (Work vs Personal), discover your actual working hours (never assuming 9-5), determine which calendar should be used for Focus Time/Breaks, and generate a `calendar_preferences.md` file for other skills to use.
+
 An interactive onboarding workflow. The AI will pull your available calendars, ask you to categorize them (Work vs Personal), discover your actual working hours (never assuming 9-5), and generate a `calendar_preferences.md` file for other skills to use.
 
 ### 4. `daily-briefing`

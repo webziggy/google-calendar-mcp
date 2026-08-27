@@ -59,7 +59,8 @@ If you are setting up this MCP server on your own device, you **must** install t
 - `calendar-assistant`: Teaches the AI how to translate natural language queries into specific MCP tool actions, including attendee parsing and white-space finding.
 - `calendar-setup`: An interactive onboarding workflow to categorize your calendars, define custom working hours, and generate a hand-editable `calendar_preferences.md` file.
 
-- `daily-briefing`: A morning executive briefing that analyzes schedule congestion and proactively offers to block focus time.
+- `daily-briefing`: A morning executive briefing that analyzes schedule congestion, checks for missed lunch breaks, and proactively blocks focus time on your designated personal calendar.
+
 
 
 
