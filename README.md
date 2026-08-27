@@ -35,6 +35,8 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 - **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.
 
 ## Usage Examples (Natural Language)
+> **Note:** By default, the assistant is trained to search your "Home" calendar. If you want it to look at a different calendar, just mention it by name (e.g., *"When am I free on my Work calendar this afternoon?"*).
+
 If you have installed the bundled `calendar-assistant` skill, your AI agent will be able to handle natural language queries like a native personal assistant. Try asking your agent:
 
 * **"What are the next events in my calendar for today?"**
