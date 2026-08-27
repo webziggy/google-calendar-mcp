@@ -6,6 +6,8 @@ To build a privacy-first, extensible bridge between AI agents and Google Calenda
 ## 2. Phased Architecture
 - **Phase 1 (Backend - Active):** A local Model Context Protocol (MCP) server written in Node.js/TypeScript. Exposes safe, paginated, and rate-limited calendar tools to any compatible AI agent.
 - **Phase 2 (Frontend - Upcoming):** A Flutter macOS companion desktop app. Provides a visual dashboard to monitor AI-managed events, filter by use-case, and easily copy/paste Markdown representations.
+  - **Smart Do Not Disturb (DND) Engine:** The app will manage native macOS notifications intelligently. It will read `calendar_preferences.md` to silence non-critical notifications outside of Working Hours (Routine DND). Furthermore, if an event is currently active on the user's designated Focus/Break Calendar, the app will enter Ad-Hoc DND mode and queue notifications until the focus block is over.
+
 
 ## 3. Core Use Cases (Agent Workflows)
 
