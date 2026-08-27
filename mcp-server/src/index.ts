@@ -7,7 +7,8 @@ import {
   listEvents,
   createEvent,
   updateEvent,
-  deleteEvent
+  deleteEvent,
+  appendEventLog
 } from "./calendar.js";
 
 const server = new Server(
@@ -101,6 +102,19 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "add_event_log",
+        description: "Safely append a timestamped, human-readable audit log to the event's visible description.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            calendarId: { type: "string" },
+            eventId: { type: "string" },
+            message: { type: "string" }
+          },
+          required: ["calendarId", "eventId", "message"],
+        },
+      },
+      {
         name: "delete_event",
         description: "Delete an event from the calendar.",
         inputSchema: {
@@ -171,6 +185,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "update_event": {
         const { calendarId, eventId, ...updates } = request.params.arguments as any;
         const event = await updateEvent(calendarId, eventId, updates);
+        return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
+      }
+
+      case "add_event_log": {
+        const { calendarId, eventId, message } = request.params.arguments as any;
+        // NOTE: appendEventLog must be imported at the top of the file, we will fix imports next.
+        const event = await appendEventLog(calendarId, eventId, message);
         return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
       }
       

@@ -210,6 +210,31 @@ export async function updateEvent(
 }
 
 /**
+ * Safely appends a formatted, timestamped log entry to an event's visible description.
+ */
+export async function appendEventLog(calendarId: string, eventId: string, message: string, author: string = "AI") {
+  const calendar = getCalendarClient();
+  
+  const existing = await calendar.events.get({ calendarId, eventId });
+  const event = existing.data;
+
+  const now = new Date();
+  const timestamp = now.toISOString().replace('T', ' ').substring(0, 16) + ' GMT'; // e.g. 2026-08-27 15:10 GMT
+  
+  const logEntry = `\n\n---\n[${timestamp}][${author}] ${message}`;
+  
+  event.description = (event.description || '').trim() + logEntry;
+
+  const res = await calendar.events.update({
+    calendarId,
+    eventId,
+    requestBody: event,
+  });
+
+  return res.data;
+}
+
+/**
  * Deletes an event from the calendar.
  */
 export async function deleteEvent(calendarId: string, eventId: string) {

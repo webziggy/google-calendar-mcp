@@ -67,3 +67,15 @@ The true power of this system lies in the `ext_payload` JSON. Standard calendar 
 1. **Zero Collisions:** If the CRM skill and the CI/CD skill both update the same event, they write to their own dedicated keys (`ext_crm` vs `ext_cicd`), preventing overwrites.
 2. **Bypasses the 44-Character Limit:** Google Calendar restricts keys to 44 characters. Flattening extension properties (e.g., `ext_helloworld_thread_id`) risks hitting this limit. By storing stringified JSON inside `ext_[id]`, we keep keys short and leverage the much larger 1024-character value limit.
 3. **Implicit Registry:** We don't even need a `core_extensions` routing table. The presence of the `ext_crm` key inherently tells the Flutter app and other agents exactly which extensions are attached to the event!
+
+## 5. Dual-Layered Data (Hidden State vs Visible Log)
+To ensure the calendar remains human-readable without risking corruption to the JSON state:
+- **Machine State (Hidden):** All core logic, IDs, and complex structures are stored exclusively in `extendedProperties.private` (subject to 44/1024 char limits).
+- **Audit Log (Visible):** The event `description` field is strictly reserved as a human-readable audit log. AI agents use the `add_event_log` tool to append timestamped updates.
+
+**Log Format Standard:**
+```
+---
+[YYYY-MM-DD HH:MM GMT][AI] Checked the log of the server with the pid - and it was fine.
+```
+This ensures the user can open their standard Google Calendar app on their phone and instantly see exactly what the AI has been doing asynchronously in the background.
