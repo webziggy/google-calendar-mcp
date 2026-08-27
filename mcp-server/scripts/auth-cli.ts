@@ -39,19 +39,16 @@ async function authenticate() {
           const { tokens } = await oAuth2Client.getToken(code);
           
           if (tokens.refresh_token) {
-            const envPath = path.resolve(process.cwd(), '.env');
-            let envContent = '';
+            const { saveEncryptedToken } = await import("../src/crypto.js");
+            saveEncryptedToken(tokens.refresh_token);
+            
+            const envPath = path.resolve(process.cwd(), ".env");
             if (fs.existsSync(envPath)) {
-              envContent = fs.readFileSync(envPath, 'utf-8');
+              let envContent = fs.readFileSync(envPath, "utf-8");
+              envContent = envContent.replace(/GOOGLE_REFRESH_TOKEN=.*\n?/g, "");
+              fs.writeFileSync(envPath, envContent, { mode: 0o600 });
             }
-            
-            if (envContent.includes('GOOGLE_REFRESH_TOKEN=')) {
-               envContent = envContent.replace(/GOOGLE_REFRESH_TOKEN=.*/g, `GOOGLE_REFRESH_TOKEN=${tokens.refresh_token}`);
-            } else {
-               envContent += `\nGOOGLE_REFRESH_TOKEN=${tokens.refresh_token}\n`;
-            }
-            
-            fs.writeFileSync(envPath, envContent);
+
             console.log('✅ Refresh token successfully saved to .env file!');
           } else {
             console.log('⚠️ No refresh token received. You might need to revoke access in your Google Account and try again.');

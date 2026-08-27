@@ -1,8 +1,9 @@
 import { google } from 'googleapis';
 import * as path from 'path';
 import * as fs from 'fs';
+import { loadEncryptedToken, saveEncryptedToken } from './crypto.js';
 
-// Safely load .env without noisy stdout ads that corrupt MCP
+// Safely load .env
 try {
   const envPath = path.resolve(process.cwd(), '.env');
   if (fs.existsSync(envPath)) {
@@ -16,9 +17,7 @@ try {
       }
     });
   }
-} catch (e) {
-  // Ignore missing .env
-}
+} catch (e) {}
 
 export function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -34,11 +33,22 @@ export function getOAuth2Client() {
     'http://localhost:3000/oauth2callback'
   );
 
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+  // Migrate plain text refresh token if it exists in .env
+  if (process.env.GOOGLE_REFRESH_TOKEN) {
+    saveEncryptedToken(process.env.GOOGLE_REFRESH_TOKEN);
+    
+    // Remove it from .env for security
+    const envPath = path.resolve(process.cwd(), '.env');
+    let envContent = fs.readFileSync(envPath, 'utf8');
+    envContent = envContent.replace(/GOOGLE_REFRESH_TOKEN=.*\n?/g, '');
+    fs.writeFileSync(envPath, envContent, { mode: 0o600 }); // Secure .env too
+    
+    delete process.env.GOOGLE_REFRESH_TOKEN;
+  }
+
+  const refreshToken = loadEncryptedToken();
   if (refreshToken) {
-    oAuth2Client.setCredentials({
-      refresh_token: refreshToken
-    });
+    oAuth2Client.setCredentials({ refresh_token: refreshToken });
   }
 
   return oAuth2Client;

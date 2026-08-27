@@ -7,6 +7,18 @@ export interface AIMetadata {
   [key: string]: string | undefined;
 }
 
+const DEFAULT_ALLOWED_FIELDS = ['id', 'summary', 'description', 'start', 'end', 'extendedProperties', 'status', 'htmlLink'];
+
+function filterEventFields(event: calendar_v3.Schema$Event, allowedFields = DEFAULT_ALLOWED_FIELDS) {
+  const slimEvent: any = {};
+  for (const field of allowedFields) {
+    if (event[field as keyof typeof event] !== undefined) {
+      slimEvent[field] = event[field as keyof typeof event];
+    }
+  }
+  return slimEvent;
+}
+
 /**
  * Lists all calendars the user has access to.
  */
@@ -66,7 +78,8 @@ export async function listEvents(
   timeMin?: string, 
   timeMax?: string, 
   pageToken?: string,
-  maxResults: number = 100
+  maxResults: number = 100,
+  raw: boolean = false
 ) {
   const calendar = getCalendarClient();
   
@@ -82,7 +95,7 @@ export async function listEvents(
   });
 
   return {
-    events: res.data.items || [],
+    events: (res.data.items || []).map(e => raw ? e : filterEventFields(e)),
     nextPageToken: res.data.nextPageToken
   };
 }
@@ -176,7 +189,13 @@ export async function updateEvent(
 ) {
   const calendar = getCalendarClient();
   
-  const existing = await calendar.events.get({ calendarId, eventId });
+  let existing;
+  try {
+    existing = await calendar.events.get({ calendarId, eventId });
+  } catch (e: any) {
+    if (e.code === 404 || e.status === 404) throw new Error(`Event '${eventId}' not found (it may have been deleted).`);
+    throw e;
+  }
   const event = existing.data;
 
   if (updates.title) event.summary = updates.title;
@@ -215,7 +234,13 @@ export async function updateEvent(
 export async function appendEventLog(calendarId: string, eventId: string, message: string, author: string = "AI") {
   const calendar = getCalendarClient();
   
-  const existing = await calendar.events.get({ calendarId, eventId });
+  let existing;
+  try {
+    existing = await calendar.events.get({ calendarId, eventId });
+  } catch (e: any) {
+    if (e.code === 404 || e.status === 404) throw new Error(`Event '${eventId}' not found (it may have been deleted).`);
+    throw e;
+  }
   const event = existing.data;
 
   const now = new Date();
@@ -239,9 +264,15 @@ export async function appendEventLog(calendarId: string, eventId: string, messag
  */
 export async function deleteEvent(calendarId: string, eventId: string) {
   const calendar = getCalendarClient();
-  await calendar.events.delete({
-    calendarId,
-    eventId,
-  });
+  try {
+    await calendar.events.delete({
+      calendarId,
+      eventId,
+    });
+  } catch (e: any) {
+    // If it's already deleted (404), that's functionally identical to a successful deletion.
+    if (e.code === 404 || e.status === 404) return true;
+    throw e;
+  }
   return true;
 }
