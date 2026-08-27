@@ -10,7 +10,7 @@ This skill teaches the agent how to natively handle common natural language requ
 ## 1. Core Guidelines
 - **Permission Awareness:** Always check the `Role` column in the preferences table before attempting a mutation. If a calendar is marked as `reader`, do not attempt to `create_event`, `update_event`, or `delete_event` on it. Fail early and inform the user they lack permissions.
 
-- **Preferences Sync (Create/Delete):** If you use the `create_calendar` or `delete_calendar` tools, you MUST immediately update the global preferences via `write_calendar_preferences` to reflect the change. (If creating, assign it a logical category based on context).
+- **Preferences Sync (Create/Delete):** If you use the `create_calendar` or `delete_calendar` tools, you MUST immediately update the global preferences via `write_calendar_preferences` to reflect the change. (If creating, always assign it the `AI-Managed` category by default unless otherwise specified).
 - **Drift Detection (Unknown Calendars):** Whenever you call `list_calendars`, cross-reference the output by calling `read_calendar_preferences`. If you detect a calendar that is missing from the file (likely created outside the MCP), you must pause your current workflow and initiate a brief "partial calendar setup" to ask the user how to categorize the new calendar before proceeding.
 
 - **Never Schedule Blindly (Conflict Resolution):** Before calling `create_event` or `update_event`, ALWAYS call `list_events` for that timeframe. If there is a conflict, do not schedule. Calculate the next available 30-minute block and propose it to the user.

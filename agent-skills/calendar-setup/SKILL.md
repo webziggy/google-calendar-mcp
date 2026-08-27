@@ -11,7 +11,7 @@ Run this skill when a user asks to set up, configure, or calibrate their calenda
 1. **Fetch Calendars:** Call `list_calendars` to get all available calendars.
    - Note the `accessRole` (owner, writer, reader) returned by the API for each calendar. You will need this for the preferences table.
 
-2. **Categorization:** Ask the user to categorize each calendar (Work, Personal, Read-Only, Ignore). *If this is a partial setup for a newly discovered calendar, only ask about the new one.*
+2. **Categorization:** Ask the user to categorize each calendar (Work, Personal, Read-Only, Ignore, AI-Managed). *If this is a partial setup for a newly discovered calendar, only ask about the new one.*
 3. **Working Hours:** Ask the user to define their working routine (Start/End times, Timezone, Work Days, Protected Breaks like lunch).
 
 ## 2. Configuration Schema
