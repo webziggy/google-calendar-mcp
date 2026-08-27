@@ -8,10 +8,33 @@ To build a privacy-first, extensible bridge between AI agents and Google Calenda
 - **Phase 2 (Frontend - Upcoming):** A Flutter macOS companion desktop app. Provides a visual dashboard to monitor AI-managed events, filter by use-case, and easily copy/paste Markdown representations.
 
 ## 3. Core Use Cases (Agent Workflows)
-1. **Context "Snoozing":** Pausing an AI conversation and scheduling an event to automatically resume it (with full context) on a specific day.
-2. **Personal CRM:** Automatically scheduling follow-up reminders for emails. The AI can wake up, check if a reply was received, and draft a response.
-3. **CI/CD & Long-Running Tasks:** Scheduling check-ins for long-running scripts or server deployments. The AI wakes up, checks the logs, and updates the calendar event with success/failure status.
-4. **Content Pipelines:** Bulk importing markdown schedules for social media or blog posts, tying local file paths directly to calendar dates.
+
+The true power of this system lies in the `ext_payload` JSON. Standard calendar apps cannot store structured data without cluttering the visible description field. By using hidden metadata, AI agents can execute the following workflows:
+
+### 1. "Snoozing" and Context-Resumption
+* **The Scenario:** A user is in the middle of a complex coding problem or conversation with an AI, but needs to step away. They say, *"Remind me to finish debugging this database migration on Tuesday morning."*
+* **The Execution:** The agent schedules an event for Tuesday. In the hidden metadata, it injects the `conversation_id` and `pending_action: "db_migration_fix"`. 
+* **The Result:** On Tuesday, the user receives a native OS notification. When triggered, the AI reads the metadata, instantly regains the exact chat context, and resumes the workflow right where they left off.
+
+### 2. Personal CRM & Automated Follow-ups
+* **The Scenario:** A user sends an important outreach email and tells the agent *"Remind me to follow up if they don't reply in 4 days."*
+* **The Execution:** The agent schedules the event. The hidden metadata stores the `email_thread_id` and a `relationship_context` summary. 
+* **The Result:** When the event triggers, the agent can use an email API to check if a reply exists. If not, it automatically drafts a context-aware follow-up for the user's approval.
+
+### 3. Content & Social Media Pipeline
+* **The Scenario:** The user and AI brainstorm and write 5 different blog posts or social updates in local markdown files.
+* **The Execution:** The AI uses the `import_markdown_events` tool to schedule all 5 across the month. The hidden metadata stores `file_path: "/docs/drafts/post_1.md"` and `platform: "LinkedIn"`.
+* **The Result:** When the calendar event arrives, the agent reads the hidden file path, fetches the exact markdown document from the local disk, and asks, *"Are you ready to publish this?"*
+
+### 4. Smart Meeting Briefings
+* **The Scenario:** A user has a busy day of meetings on their primary calendar.
+* **The Execution:** A background agent runs `list_events` every morning to cross-reference attendees. It uses `create_event` to block out 15 minutes *before* major meetings on the dedicated "AI Calendar". 
+* **The Result:** The hidden metadata contains a generated briefing (summarizing the last 3 emails with that person or a LinkedIn profile link), ensuring the user is prepped without cluttering the main meeting invite.
+
+### 5. Local Infrastructure / CI-CD Polling
+* **The Scenario:** The user kicks off a massive local script or server deployment that will take hours and closes their laptop.
+* **The Execution:** The agent schedules a check-in event for 6 hours from now. Metadata includes `server_ip` and `script_pid`. 
+* **The Result:** When the reminder triggers, the agent wakes up, checks the system logs via SSH or local execution, and updates the calendar event title to either `✅ Deployment Success` or `❌ Deployment Failed`.
 
 ---
 
