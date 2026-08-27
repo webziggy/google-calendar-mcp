@@ -9,6 +9,9 @@ npm-debug.log*
 .env.*
 credentials.json
 token.json
+credentials.enc
+tokens.json
+
 *.pem
 
 # OS
