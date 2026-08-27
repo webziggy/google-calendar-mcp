@@ -16,6 +16,10 @@ The following tools are exposed to AI agents via the MCP server:
 - `create_event`: Create an event/reminder with exact start/end times and inject hidden AI metadata natively.
 - `update_event`: Modify an existing event (uses safe read-modify-write).
 - `delete_event`: Remove an event from the calendar.
+- `add_event_log`: Safely append a timestamped audit log to the visible description.
+- `export_events_as_markdown`: Export a calendar as a standard Markdown checklist.
+- `import_markdown_events`: Bulk-create reminders directly from a Markdown checklist.
+
 
 ## Documentation
 - [Authentication Guide](docs/authentication.md) - How to set up Google Cloud credentials and generate your local tokens.
@@ -47,7 +51,4 @@ cp -r agent-skills/* ~/.gemini/config/skills/
 *(For detailed instructions, see [agent-skills/README.md](agent-skills/README.md))*
 
 ### Product Documents
-- [Product Requirements Document (PRD)](product-docs/PRD.md) - Project vision, use cases, and architecture.
-
-### Product Documents
-- [Product Requirements Document (PRD)](product-docs/PRD.md) - Project vision, use cases, and architecture.
+- [Product Requirements Document (PRD)](product-docs/PRD.md) - Project vision, use cases, and dual-layered data architecture.
