@@ -2,7 +2,7 @@
   "mcpServers": {
     "google_calendar": {
       "command": "node",
-      "args": ["--import", "tsx", "src/index.ts"],
+      "args": ["build/index.js"],
       "cwd": "/Users/alano/Documents/github/google-calendar-mcp/mcp-server"
     }
   }
