@@ -13,5 +13,6 @@ Run this skill when a user asks for a morning brief, schedule overview, or agend
 3. **Analyze Load:** 
    - Compare the total meeting duration against the user's defined working hours.
    - If their schedule is highly congested (e.g., >75% of their working hours are booked), explicitly flag this.
-   - Proactively suggest calling `create_event` to block out the remaining free time as "Focus Time" or "Do Not Book" to protect their sanity.
+   - Proactively suggest calling `create_event` to block out the remaining free time as "Focus Time" or to insert missing lunch breaks. **Crucially**, ensure you schedule these blocking events on the designated `Focus/Break Calendar` defined in the preferences file, so you do not clutter shared or read-only calendars.
+
 4. **Deliver Briefing:** Present a concise, easy-to-read agenda for the day, summarizing who they are meeting with (parsing the `attendees` array) and any missing breaks (e.g., "You have back-to-back meetings from 11 AM to 3 PM with no lunch break scheduled").

@@ -23,6 +23,10 @@ You must save the output exactly in this format using `write_to_file` to `calend
 - **Work Days:** Monday, Tuesday, Wednesday, Thursday, Friday
 - **Work Hours:** 09:00 - 17:30
 - **Protected Breaks:** 12:30 - 13:30 (Lunch)
+- **Focus/Break Calendar:** primary (Home)
+
+- **Focus/Break Calendar:** Which specific calendar should be used to schedule your lunch breaks and focus time? (Not all calendars need this; usually, it's your Primary or Work calendar).
+
 
 ## Calendars
 | ID | Name | Category |
