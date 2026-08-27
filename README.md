@@ -29,3 +29,19 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 ### Agent Usage Guidelines
 - **Pagination Limit:** Agents are strictly instructed not to paginate through `list_events` more than 3 times without explicit user consent to prevent API rate limits and timeouts.
 - **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.
+
+## Required Agent Skills
+
+Because raw MCP tools are powerful, this repository bundles **Agent Skills** that enforce behavioral safety guardrails (e.g., double-confirming before an AI touches your primary "Home" calendar). 
+
+If you are setting up this MCP server on your own device, you **must** install these bundled skills into your AI's environment so your agent knows how to use the tools safely.
+
+**Available Bundled Skills:**
+- `link-calendar`: Prevents the AI from blindly picking standard calendars (Home, Birthdays) without double confirmation.
+
+**How to Install (Antigravity):**
+You can install these skills globally or per-workspace. To install them into your global Antigravity configuration:
+```bash
+cp -r agent-skills/* ~/.gemini/config/skills/
+```
+*(For detailed instructions, see [agent-skills/README.md](agent-skills/README.md))*
