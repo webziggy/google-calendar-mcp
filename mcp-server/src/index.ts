@@ -1,4 +1,5 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { readCalendarPreferences, writeCalendarPreferences } from "./preferences.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import {
@@ -150,6 +151,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ["calendarId", "markdownText"],
         },
+      },
+      {
+        name: "read_calendar_preferences",
+        description: "Read the globally saved calendar preferences (working hours, designated focus calendars, etc).",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "write_calendar_preferences",
+        description: "Save the user's calendar preferences to the server.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            markdownContent: { type: "string" }
+          },
+          required: ["markdownContent"],
+        },
       }
     ],
   };
@@ -241,6 +262,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: `Successfully imported ${created.length} events.` }] };
       }
 
+      case "read_calendar_preferences": {
+        const prefs = await readCalendarPreferences();
+        return { content: [{ type: "text", text: prefs }] };
+      }
+      
+      case "write_calendar_preferences": {
+        const { markdownContent } = request.params.arguments as any;
+        const res = await writeCalendarPreferences(markdownContent);
+        return { content: [{ type: "text", text: res }] };
+      }
+      
       default:
         throw new Error(`Unknown tool: ${request.params.name}`);
     }

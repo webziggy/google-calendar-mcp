@@ -16,6 +16,9 @@ The following tools are exposed to AI agents via the MCP server:
 - `create_event`: Create an event/reminder with exact start/end times and inject hidden AI metadata natively.
 - `update_event`: Modify an existing event (uses safe read-modify-write).
 - `delete_event`: Remove an event from the calendar.
+- `read_calendar_preferences`: Retrieve the user's global working hours and routing rules.
+- `write_calendar_preferences`: Save the user's global working hours and routing rules.
+
 - `add_event_log`: Safely append a timestamped audit log to the visible description.
 - `export_events_as_markdown`: Export a calendar as a standard Markdown checklist.
 - `import_markdown_events`: Bulk-create reminders directly from a Markdown checklist.
