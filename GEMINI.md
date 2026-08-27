@@ -8,3 +8,8 @@
 - **Co-development:** As you develop or modify an MCP server, you must proactively develop, update, and consolidate the associated Agent Skills required to use those tools safely and effectively.
 - **Distribution:** Always bundle these skills within the repository (e.g., in an `agent-skills/` directory). Ensure there is documentation explaining how another user setting up the project on their own device can install these skills into their own `.agents/` workspace.
 - **Guardrails:** Use these skills to define the behavioral safety guardrails (e.g., explicit user confirmations for sensitive actions) that cannot be easily enforced by the raw MCP tools alone.
+
+# Data Versioning and Upgrades
+
+- **Schema Checking:** When reading payloads (such as the hidden `extendedProperties.private` in calendar events), always check the `_schema_version`.
+- **Conflict Resolution:** If you encounter a legacy schema version and there is *any* ambiguity or conflict on how to map it to the current version, DO NOT guess or forcefully overwrite the data. You must explicitly prompt the user for instructions on how they would like to handle or upgrade the legacy payload.

@@ -20,3 +20,6 @@ When an agent writes to a calendar event, the Node.js MCP server automatically s
 ### Upgrading and Backward Compatibility
 When building AI Skills that read events, always check the `_schema_version` key.
 If you encounter a schema version older than the one your Skill expects, your Skill should gracefully handle the missing data or upgrade the payload using the `update_event` MCP tool.
+
+### Handling Legacy Conflicts
+If an agent encounters an older schema version and there is no direct mapping to the current version (e.g., a required field didn't exist in the old schema), the agent **must halt and explicitly prompt the user** for how to handle the data migration. Do not blindly overwrite legacy metadata without user consent if there is a conflict.
