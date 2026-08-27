@@ -2,7 +2,7 @@
 
 This document outlines the schema for the hidden AI metadata injected into Google Calendar events. We use Google Calendar's `extendedProperties.private` payload to store arbitrary JSON data that is invisible to humans but perfectly readable by our agents.
 
-## Current Version: `0.1-draft`
+## Current Version: `0.1.0`
 > **Note:** The schema is currently in draft mode as we figure out what fields are universally required. Once the data structure stabilizes across multiple AI workflows, we will finalize a `1.0` release.
 
 ### Schema Fields
@@ -10,7 +10,7 @@ When an agent writes to a calendar event, the Node.js MCP server automatically s
 
 ```json
 {
-  "_schema_version": "0.1-draft",
+  "_schema_version": "0.1.0",
   "managed_by": "Antigravity",
   "conversation_id": "optional-uuid",
   "...": "Any arbitrary key-value pairs the calling Agent/Skill defines"

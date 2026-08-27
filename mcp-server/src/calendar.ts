@@ -46,7 +46,7 @@ export async function listEvents(calendarId: string, timeMin?: string, timeMax?:
   return res.data.items || [];
 }
 
-const SCHEMA_VERSION = "0.1-draft";
+const SCHEMA_VERSION = "0.1.0";
 
 /**
  * Creates a new event with native support for exact times and hidden AI metadata.
