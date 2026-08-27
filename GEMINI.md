@@ -32,3 +32,8 @@
 
 # Extension Design & Constraints
 - **Payload Limits:** Google Calendar limits hidden metadata keys to 44 characters and values to 1024 characters. When writing a new skill that uses `ext_[id]`, never attempt to store raw blobs (e.g., entire file contents or email chains). You must only store IDs, paths, or URLs, and dynamically fetch the heavy content when needed.
+
+# Dual-Layered Data & Audit Logging
+- **Machine vs Human:** Never store raw JSON or machine-readable state in the visible `description` field of an event. All machine state belongs strictly in the hidden `extendedProperties.private`.
+- **Append-Only Logs:** When executing asynchronous workflows or making decisions, always provide a human-readable audit log in the event description so the user knows what you did.
+- **Safe Appending:** Do NOT manually read, concatenate, and rewrite the event description to add a log (as you risk overwriting user-generated notes). You must exclusively use the dedicated `add_event_log` tool to safely append timestamped updates.
