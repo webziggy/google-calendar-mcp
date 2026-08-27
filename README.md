@@ -45,3 +45,9 @@ You can install these skills globally or per-workspace. To install them into you
 cp -r agent-skills/* ~/.gemini/config/skills/
 ```
 *(For detailed instructions, see [agent-skills/README.md](agent-skills/README.md))*
+
+### Product Documents
+- [Product Requirements Document (PRD)](product-docs/PRD.md) - Project vision, use cases, and architecture.
+
+### Product Documents
+- [Product Requirements Document (PRD)](product-docs/PRD.md) - Project vision, use cases, and architecture.
