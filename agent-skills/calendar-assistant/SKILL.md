@@ -8,6 +8,11 @@ description: Natural language workflows for querying, scheduling, and modifying 
 This skill teaches the agent how to natively handle common natural language requests ("What's my next meeting?", "Do I have a sync with Bob?", "Where is the Teams link?") using the local Google Calendar MCP Server.
 
 ## 1. Core Guidelines
+- **Never Schedule Blindly (Conflict Resolution):** Before calling `create_event` or `update_event`, ALWAYS call `list_events` for that timeframe. If there is a conflict, do not schedule. Calculate the next available 30-minute block and propose it to the user.
+- **Timezone Confirmation:** If you haven't scheduled anything recently, explicitly state the timezone you *assume* the user is in (e.g., "I'll schedule this in BST...") to give them a chance to correct you. Always perform strict timezone math if they request a foreign timezone.
+- **Recurring Event Instance Safety:** When modifying or deleting an event, ensure you are interacting with the specific *instance ID* (which `list_events` provides when `singleEvents: true` is set), not the parent series ID, unless explicitly asked to modify the entire series.
+- **Preferences Awareness:** Before scheduling, check if a `calendar_preferences.md` file exists. If it does, respect the defined working hours, break times, and calendar categories.
+
 - **Default Calendar Routing:** If the user asks a general scheduling question without explicitly naming a calendar, you should prioritize searching for a calendar named **"Home"**. If no "Home" calendar exists in `list_calendars`, fall back to the primary calendar.
 - **Time Constraints (RFC3339):** The Google API requires strict RFC3339 bounds. When the user says "today", you must calculate `timeMin` as the current local time, and `timeMax` as 23:59:59 local time.
 - **Multi-Calendar Aggregation:** The underlying MCP server only accepts one `calendarId` per request. If a user asks to check their free time or search for an event without specifying a single calendar, you should ask if they want you to check across all their primary calendars (e.g., Home, Work, Family). To check multiple calendars, execute `list_events` concurrently for each calendar and aggregate the results locally in your context.
