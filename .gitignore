@@ -17,3 +17,4 @@ tokens.json
 # OS
 .DS_Store
 local-docs/
+calendar_preferences.md
