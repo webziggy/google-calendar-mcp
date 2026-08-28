@@ -130,37 +130,12 @@ class MainGatekeeper extends StatelessWidget {
             )
           ]
         ),
-        child: Column(
-          children: [
-            GestureDetector(
-              onPanUpdate: (details) => windowManager.startDragging(),
-              child: Container(
-                height: 40,
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12)
-                  )
-                ),
-                child: const Center(
-                  child: Text(
-                    "EventHorizon",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70),
-                  ),
-                ),
-              ),
-            ),
-            const Divider(height: 1, color: Colors.white12),
-            Expanded(
-              child: Consumer<AuthService>(
-                builder: (context, auth, child) {
-                  if (auth.currentUser == null) return const LoginScreen();
-                  return DashboardScreen(user: auth.currentUser!);
-                },
-              ),
-            ),
-          ],
+        // Auth State Routing delegates the entire view to the sub-screens
+        child: Consumer<AuthService>(
+          builder: (context, auth, child) {
+            if (auth.currentUser == null) return const LoginScreen();
+            return DashboardScreen(user: auth.currentUser!);
+          },
         ),
       ),
     );
@@ -172,21 +147,41 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.hub, size: 64, color: Colors.deepPurpleAccent),
-          const SizedBox(height: 16),
-          const Text("Sync your AI Workflows", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => context.read<AuthService>().signIn(),
-            icon: const Icon(Icons.login),
-            label: const Text("Sign In with Google"),
-          )
-        ],
-      ),
+    return Column(
+      children: [
+        GestureDetector(
+          onPanUpdate: (details) => windowManager.startDragging(),
+          child: Container(
+            height: 40,
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12))
+            ),
+            child: const Center(
+              child: Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+            ),
+          ),
+        ),
+        const Divider(height: 1, color: Colors.white12),
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.hub, size: 64, color: Colors.deepPurpleAccent),
+                const SizedBox(height: 16),
+                const Text("Sync your AI Workflows", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () => context.read<AuthService>().signIn(),
+                  icon: const Icon(Icons.login),
+                  label: const Text("Sign In with Google"),
+                )
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -234,29 +229,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // User Header
-        Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              CircleAvatar(backgroundImage: NetworkImage(widget.user.photoUrl ?? ''), radius: 16),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  widget.user.email,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                  overflow: TextOverflow.ellipsis,
+        // Unified Header
+        GestureDetector(
+          onPanUpdate: (details) => windowManager.startDragging(),
+          child: Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: const BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12))
+            ),
+            child: Row(
+              children: [
+                const Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
+                  onPressed: _loadEvents,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 16,
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh, size: 16),
-                onPressed: _loadEvents,
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout, size: 16),
-                onPressed: () => context.read<AuthService>().signOut(),
-              ),
-            ],
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: const Icon(Icons.settings, size: 14, color: Colors.white70),
+                  onPressed: () {
+                    // TODO: Open Settings View
+                  },
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  splashRadius: 16,
+                ),
+                const SizedBox(width: 12),
+                PopupMenuButton<String>(
+                  offset: const Offset(0, 30),
+                  color: const Color(0xFF2C2C2C),
+                  tooltip: "Account",
+                  child: CircleAvatar(
+                    backgroundImage: NetworkImage(widget.user.photoUrl ?? ''),
+                    radius: 10,
+                  ),
+                  onSelected: (value) {
+                    if (value == 'logout') {
+                      context.read<AuthService>().signOut();
+                    } else if (value == 'quit') {
+                      windowManager.destroy();
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem<String>(
+                      enabled: false,
+                      child: Text(
+                        widget.user.email,
+                        style: const TextStyle(fontSize: 11, color: Colors.white54),
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem<String>(
+                      value: 'logout',
+                      child: Text('Sign Out', style: TextStyle(fontSize: 13)),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'quit',
+                      child: Text('Quit EventHorizon', style: TextStyle(fontSize: 13, color: Colors.redAccent)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
         const Divider(height: 1, color: Colors.white12),
