@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 
+import 'package:google_sign_in/google_sign_in.dart';
+
 import 'services/auth_service.dart';
 
 void main() async {
