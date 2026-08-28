@@ -5,34 +5,28 @@ import 'package:tray_manager/tray_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize window manager
   await windowManager.ensureInitialized();
   
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(400, 600),
+    size: Size(380, 600), // Slightly narrower, typical for macOS tray apps
     center: true,
     backgroundColor: Colors.transparent,
-    skipTaskbar: true,       // Hide from dock
-    titleBarStyle: TitleBarStyle.hidden, // Frameless window
+    skipTaskbar: true,       
+    titleBarStyle: TitleBarStyle.hidden, 
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowManager.hide(); // Start hidden, only show on tray click
+    await windowManager.hide(); 
   });
 
-  // Initialize tray manager
-  await trayManager.setIcon('images/tray_icon.png'); // We will add this asset shortly
+  await trayManager.setIcon('images/tray_icon.png');
   
+  // Optional: A right-click context menu (optional, can leave empty if we only want the left-click drop down)
   Menu menu = Menu(
     items: [
       MenuItem(
-        key: 'show_window',
-        label: 'Show EventHorizon',
-      ),
-      MenuItem.separator(),
-      MenuItem(
         key: 'exit_app',
-        label: 'Exit',
+        label: 'Quit EventHorizon',
       ),
     ],
   );
@@ -41,17 +35,74 @@ void main() async {
   runApp(const EventHorizonApp());
 }
 
-class EventHorizonApp extends StatelessWidget {
+class EventHorizonApp extends StatefulWidget {
   const EventHorizonApp({super.key});
+
+  @override
+  State<EventHorizonApp> createState() => _EventHorizonAppState();
+}
+
+class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, WindowListener {
+  @override
+  void initState() {
+    super.initState();
+    trayManager.addListener(this);
+    windowManager.addListener(this);
+  }
+
+  @override
+  void dispose() {
+    trayManager.removeListener(this);
+    windowManager.removeListener(this);
+    super.dispose();
+  }
+
+  @override
+  void onTrayIconMouseDown() async {
+    bool isVisible = await windowManager.isVisible();
+    if (isVisible) {
+      await windowManager.hide();
+    } else {
+      Rect? trayBounds = await trayManager.getBounds();
+      Size windowSize = await windowManager.getSize();
+      
+      if (trayBounds != null) {
+        // Center the window horizontally beneath the tray icon
+        double x = trayBounds.left + (trayBounds.width / 2) - (windowSize.width / 2);
+        // Place the window immediately below the menu bar
+        double y = trayBounds.bottom;
+        
+        await windowManager.setPosition(Offset(x, y));
+      }
+      
+      await windowManager.show();
+      await windowManager.focus();
+    }
+  }
+
+  @override
+  void onTrayMenuItemClick(MenuItem menuItem) {
+    if (menuItem.key == 'exit_app') {
+      // Allow the user to cleanly quit the background process
+      windowManager.destroy();
+    }
+  }
+
+  @override
+  void onWindowBlur() async {
+    // Global click-away: hide the window when the user clicks anywhere else
+    await windowManager.hide();
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'EventHorizon',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF1E1E1E),
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: Colors.deepPurpleAccent,
           secondary: Colors.blueAccent,
         ),
@@ -67,32 +118,53 @@ class DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: Container(
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white24, width: 1),
+          color: const Color(0xFF1E1E1E), // Solid dark background
+          border: Border.all(color: Colors.white12, width: 1),
           borderRadius: BorderRadius.circular(12),
+          // Add a subtle drop shadow to make it pop against the desktop
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ]
         ),
         child: Column(
           children: [
-            // Custom drag area for the frameless window
+            // Header / Drag Area
             GestureDetector(
               onPanUpdate: (details) {
+                // Allows the user to tear the window away from the menu bar!
                 windowManager.startDragging();
               },
               child: Container(
                 height: 40,
-                color: Colors.transparent,
+                decoration: const BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12)
+                  )
+                ),
                 child: const Center(
                   child: Text(
                     "EventHorizon",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70),
                   ),
                 ),
               ),
             ),
+            const Divider(height: 1, color: Colors.white12),
             const Expanded(
               child: Center(
-                child: Text('AI Workflows loading...'),
+                child: Text(
+                  'AI Workflows loading...',
+                  style: TextStyle(color: Colors.white54),
+                ),
               ),
             ),
           ],
