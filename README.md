@@ -31,6 +31,8 @@ The following tools are exposed to AI agents via the MCP server:
 All credentials are stored strictly in local `.env` files. No third-party gateways or cloud services are used to manage your tokens.
 
 ### Schema Documentation
+- [Calendar Preferences Example](docs/calendar_preferences.example.md) - A documented dummy version of the global `calendar_preferences.md` routing file.
+
 - [AI Metadata Schema](docs/ai-metadata-schema.md) - Documentation on how we store and version the hidden AI data payloads.
 
 ### Agent Usage Guidelines
