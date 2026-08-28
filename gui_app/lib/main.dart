@@ -1,15 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
-
+import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'services/auth_service.dart';
+import 'services/calendar_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await windowManager.ensureInitialized();
   
   WindowOptions windowOptions = const WindowOptions(
@@ -28,10 +29,7 @@ void main() async {
   
   Menu menu = Menu(
     items: [
-      MenuItem(
-        key: 'exit_app',
-        label: 'Quit EventHorizon',
-      ),
+      MenuItem(key: 'exit_app', label: 'Quit EventHorizon'),
     ],
   );
   await trayManager.setContextMenu(menu);
@@ -74,13 +72,11 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
     } else {
       Rect? trayBounds = await trayManager.getBounds();
       Size windowSize = await windowManager.getSize();
-      
       if (trayBounds != null) {
         double x = trayBounds.left + (trayBounds.width / 2) - (windowSize.width / 2);
         double y = trayBounds.bottom;
         await windowManager.setPosition(Offset(x, y));
       }
-      
       await windowManager.show();
       await windowManager.focus();
     }
@@ -88,9 +84,7 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
-    if (menuItem.key == 'exit_app') {
-      windowManager.destroy();
-    }
+    if (menuItem.key == 'exit_app') windowManager.destroy();
   }
 
   @override
@@ -138,11 +132,8 @@ class MainGatekeeper extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Drag Header
             GestureDetector(
-              onPanUpdate: (details) {
-                windowManager.startDragging();
-              },
+              onPanUpdate: (details) => windowManager.startDragging(),
               child: Container(
                 height: 40,
                 decoration: const BoxDecoration(
@@ -161,14 +152,10 @@ class MainGatekeeper extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.white12),
-            
-            // Auth State Routing
             Expanded(
               child: Consumer<AuthService>(
                 builder: (context, auth, child) {
-                  if (auth.currentUser == null) {
-                    return const LoginScreen();
-                  }
+                  if (auth.currentUser == null) return const LoginScreen();
                   return DashboardScreen(user: auth.currentUser!);
                 },
               ),
@@ -191,29 +178,12 @@ class LoginScreen extends StatelessWidget {
         children: [
           const Icon(Icons.hub, size: 64, color: Colors.deepPurpleAccent),
           const SizedBox(height: 16),
-          const Text(
-            "Sync your AI Workflows",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32.0),
-            child: Text(
-              "EventHorizon needs access to your Google Calendar to render the AI dashboard.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white54),
-            ),
-          ),
+          const Text("Sync your AI Workflows", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () => context.read<AuthService>().signIn(),
             icon: const Icon(Icons.login),
             label: const Text("Sign In with Google"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.deepPurpleAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
           )
         ],
       ),
@@ -221,36 +191,121 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   final GoogleSignInAccount user;
   const DashboardScreen({super.key, required this.user});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  late CalendarService _calendarService;
+  List<cal.Event> _events = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _calendarService = CalendarService(widget.user);
+    _loadEvents();
+  }
+
+  Future<void> _loadEvents() async {
+    setState(() => _isLoading = true);
+    await _calendarService.init();
+    final events = await _calendarService.fetchAiEvents();
+    setState(() {
+      _events = events;
+      _isLoading = false;
+    });
+  }
+
+  String _formatTime(cal.EventDateTime? dt) {
+    if (dt == null) return "Unknown time";
+    if (dt.dateTime != null) {
+      final local = dt.dateTime!.toLocal();
+      return "${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}";
+    }
+    return "All Day";
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            backgroundImage: NetworkImage(user.photoUrl ?? ''),
-            radius: 32,
+    return Column(
+      children: [
+        // User Header
+        Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Row(
+            children: [
+              CircleAvatar(backgroundImage: NetworkImage(widget.user.photoUrl ?? ''), radius: 16),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  widget.user.email,
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, size: 16),
+                onPressed: _loadEvents,
+              ),
+              IconButton(
+                icon: const Icon(Icons.logout, size: 16),
+                onPressed: () => context.read<AuthService>().signOut(),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            "Authenticated as",
-            style: const TextStyle(color: Colors.white54),
-          ),
-          Text(
-            user.displayName ?? user.email,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 24),
-          OutlinedButton(
-            onPressed: () => context.read<AuthService>().signOut(),
-            child: const Text("Sign Out"),
-          )
-        ],
-      ),
+        ),
+        const Divider(height: 1, color: Colors.white12),
+        // Events List
+        Expanded(
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _events.isEmpty 
+              ? const Center(child: Text("No AI-managed events found.", style: TextStyle(color: Colors.white54)))
+              : ListView.builder(
+                  itemCount: _events.length,
+                  itemBuilder: (context, index) {
+                    final event = _events[index];
+                    final privateProps = event.extendedProperties?.private;
+                    bool hasAiMetadata = privateProps != null && privateProps.isNotEmpty;
+
+                    return ExpansionTile(
+                      leading: Icon(
+                        hasAiMetadata ? Icons.smart_toy : Icons.event,
+                        color: hasAiMetadata ? Colors.deepPurpleAccent : Colors.white54,
+                      ),
+                      title: Text(event.summary ?? "Untitled Workflow"),
+                      subtitle: Text(_formatTime(event.start)),
+                      children: [
+                        if (hasAiMetadata)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            color: Colors.black26,
+                            child: SelectableText(
+                              const JsonEncoder.withIndent('  ').convert(privateProps),
+                              style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.greenAccent),
+                            ),
+                          ),
+                        if (event.description != null)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(16),
+                            child: SelectableText(
+                              event.description!,
+                              style: const TextStyle(fontSize: 12, color: Colors.white70),
+                            ),
+                          )
+                      ],
+                    );
+                  },
+                ),
+        )
+      ],
     );
   }
 }
