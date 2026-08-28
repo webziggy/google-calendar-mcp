@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'dnd_service.dart';
 
 class GoogleAuthClient extends http.BaseClient {
   final Map<String, String> _headers;
@@ -28,25 +29,39 @@ class CalendarService {
     _api = cal.CalendarApi(client);
   }
 
-  Future<List<String>> getAiManagedCalendars() async {
-    List<String> aiCalendars = [];
-    
+  Future<String?> getFocusCalendarId() async {
     try {
       File prefFile = File('../mcp-server/calendar_preferences.md');
-      
       if (await prefFile.exists()) {
         List<String> lines = await prefFile.readAsLines();
         for (String line in lines) {
-          // Parse the markdown table line: | ID | Name | Category | Role | Status |
+          if (line.contains('**Focus/Break Calendar:**')) {
+            // Extracts the email/ID before the space/parentheses
+            // Example: "- **Focus/Break Calendar:** personal@example.com (Home)"
+            String raw = line.split('**Focus/Break Calendar:**')[1].trim();
+            return raw.split(' ')[0].trim();
+          }
+        }
+      }
+    } catch (e) {
+      print("Error finding Focus Calendar: $e");
+    }
+    return null;
+  }
+
+  Future<List<String>> getAiManagedCalendars() async {
+    List<String> aiCalendars = [];
+    try {
+      File prefFile = File('../mcp-server/calendar_preferences.md');
+      if (await prefFile.exists()) {
+        List<String> lines = await prefFile.readAsLines();
+        for (String line in lines) {
           if (line.trim().startsWith('|') && !line.contains('---|')) {
             List<String> columns = line.split('|').map((e) => e.trim()).toList();
-            
-            // Expected columns: [0: empty, 1: ID, 2: Name, 3: Category, 4: Role, 5: Status]
             if (columns.length >= 6) {
               String calendarId = columns[1];
               String category = columns[3];
               String status = columns[5];
-              
               if (category == 'AI-Managed' && status != 'Ignored') {
                 aiCalendars.add(calendarId);
               }
@@ -57,14 +72,12 @@ class CalendarService {
     } catch (e) {
       print("Error parsing preferences: $e");
     }
-    
     return aiCalendars;
   }
 
   Future<List<cal.Event>> fetchAiEvents() async {
     List<String> calendars = await getAiManagedCalendars();
     List<cal.Event> allEvents = [];
-
     DateTime now = DateTime.now();
     DateTime nextWeek = now.add(const Duration(days: 7));
 
@@ -93,5 +106,40 @@ class CalendarService {
     });
 
     return allEvents;
+  }
+
+  /// Triggers a 1-Hour Deep Work block on the designated Focus calendar
+  Future<void> triggerQuickFocus() async {
+    String? focusCalId = await getFocusCalendarId();
+    if (focusCalId == null) {
+      print("No focus calendar designated in preferences.");
+      return;
+    }
+
+    DateTime now = DateTime.now();
+    DateTime end = now.add(const Duration(hours: 1));
+
+    cal.Event newEvent = cal.Event(
+      summary: "Deep Work (EventHorizon)",
+      description: "Auto-generated Focus Block.\n[EventHorizon][Focus]",
+      start: cal.EventDateTime(dateTime: now.toUtc()),
+      end: cal.EventDateTime(dateTime: end.toUtc()),
+      // Set to "busy" so it blocks other meetings
+      transparency: "opaque",
+      extendedProperties: cal.EventExtendedProperties(
+        private: {
+          "_ai_managed": "true",
+          "context_type": "deep_work"
+        }
+      )
+    );
+
+    try {
+      await _api.events.insert(newEvent, focusCalId);
+      // Engage the OS DND bridge immediately
+      await DndService.enableDnd();
+    } catch (e) {
+      print("Error injecting Focus Block: $e");
+    }
   }
 }
