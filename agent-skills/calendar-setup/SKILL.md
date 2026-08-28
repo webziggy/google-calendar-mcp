@@ -31,8 +31,8 @@ You must save the output exactly in this format using `write_to_file` to `calend
 
 
 ## Calendars
-| ID | Name | Category | Role |
-|---|---|---|---|
+| ID | Name | Category | Role | Status |
+|---|---|---|---|---|
 | primary | Home | Personal | owner |
 | 12345@group.calendar.google.com | Work Meetings | Work | reader |
 | 67890@group.calendar.google.com | UK Holidays | Read-Only | reader |

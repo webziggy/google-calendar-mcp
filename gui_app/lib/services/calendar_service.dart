@@ -32,19 +32,24 @@ class CalendarService {
     List<String> aiCalendars = [];
     
     try {
-      // Find the mcp-server preferences file relative to the execution context
-      // For local development, we'll navigate up the tree. In production, this would be global app data.
       File prefFile = File('../mcp-server/calendar_preferences.md');
       
       if (await prefFile.exists()) {
         List<String> lines = await prefFile.readAsLines();
         for (String line in lines) {
-          // Parse the markdown table line: | ID | Name | Category | Role |
-          if (line.contains('|') && line.contains('AI-Managed')) {
+          // Parse the markdown table line: | ID | Name | Category | Role | Status |
+          if (line.trim().startsWith('|') && !line.contains('---|')) {
             List<String> columns = line.split('|').map((e) => e.trim()).toList();
-            if (columns.length > 2) {
+            
+            // Expected columns: [0: empty, 1: ID, 2: Name, 3: Category, 4: Role, 5: Status]
+            if (columns.length >= 6) {
               String calendarId = columns[1];
-              aiCalendars.add(calendarId);
+              String category = columns[3];
+              String status = columns[5];
+              
+              if (category == 'AI-Managed' && status != 'Ignored') {
+                aiCalendars.add(calendarId);
+              }
             }
           }
         }
@@ -57,8 +62,6 @@ class CalendarService {
   }
 
   Future<List<cal.Event>> fetchAiEvents() async {
-    if (_api == null) await init();
-    
     List<String> calendars = await getAiManagedCalendars();
     List<cal.Event> allEvents = [];
 
@@ -82,7 +85,6 @@ class CalendarService {
       }
     }
     
-    // Sort all fetched events chronologically
     allEvents.sort((a, b) {
       DateTime? aTime = a.start?.dateTime ?? a.start?.date;
       DateTime? bTime = b.start?.dateTime ?? b.start?.date;
