@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:googleapis/calendar/v3.dart' as cal;
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter/services.dart'; // For clipboard
 
 import 'services/auth_service.dart';
 import 'services/calendar_service.dart';
@@ -19,7 +21,7 @@ void main() async {
     backgroundColor: Colors.transparent,
     skipTaskbar: true,       
     titleBarStyle: TitleBarStyle.hidden, 
-    windowButtonVisibility: false, // <-- This is the native fix!
+    windowButtonVisibility: false,
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
@@ -100,12 +102,17 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
       debugShowCheckedModeBanner: false,
       title: 'EventHorizon',
       theme: ThemeData(
+        useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF1E1E1E),
+        scaffoldBackgroundColor: Colors.transparent,
+        fontFamily: '.SF Pro Text', // Native macOS font feel
         colorScheme: const ColorScheme.dark(
           primary: Colors.deepPurpleAccent,
           secondary: Colors.blueAccent,
+          surface: Colors.transparent,
+          background: Colors.transparent,
         ),
+        dividerColor: Colors.white.withOpacity(0.1),
       ),
       home: const MainGatekeeper(),
     );
@@ -119,25 +126,23 @@ class MainGatekeeper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          border: Border.all(color: Colors.white12, width: 1),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            )
-          ]
-        ),
-        // Auth State Routing delegates the entire view to the sub-screens
-        child: Consumer<AuthService>(
-          builder: (context, auth, child) {
-            if (auth.currentUser == null) return const LoginScreen();
-            return DashboardScreen(user: auth.currentUser!);
-          },
+      body: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 40.0, sigmaY: 40.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.55), // macOS Frosted Glass Tint
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.15), width: 1),
+            ),
+            child: Consumer<AuthService>(
+              builder: (context, auth, child) {
+                if (auth.currentUser == null) return const LoginScreen();
+                return DashboardScreen(user: auth.currentUser!);
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -155,29 +160,33 @@ class LoginScreen extends StatelessWidget {
           onPanUpdate: (details) => windowManager.startDragging(),
           child: Container(
             height: 40,
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12))
-            ),
+            color: Colors.transparent,
             child: const Center(
-              child: Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+              child: Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white70, fontSize: 13)),
             ),
           ),
         ),
-        const Divider(height: 1, color: Colors.white12),
+        Divider(height: 1, color: Colors.white.withOpacity(0.1)),
         Expanded(
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.hub, size: 64, color: Colors.deepPurpleAccent),
+                const Icon(Icons.blur_on, size: 64, color: Colors.deepPurpleAccent),
                 const SizedBox(height: 16),
-                const Text("Sync your AI Workflows", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text("Sync your AI Workflows", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () => context.read<AuthService>().signIn(),
-                  icon: const Icon(Icons.login),
+                  icon: const Icon(Icons.login, size: 16),
                   label: const Text("Sign In with Google"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                 )
               ],
             ),
@@ -219,7 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   String _formatTime(cal.EventDateTime? dt) {
-    if (dt == null) return "Unknown time";
+    if (dt == null) return "";
     if (dt.dateTime != null) {
       final local = dt.dateTime!.toLocal();
       return "${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}";
@@ -231,69 +240,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Unified Header
+        // Unified Mac-style Toolbar
         GestureDetector(
           onPanUpdate: (details) => windowManager.startDragging(),
           child: Container(
-            height: 40,
+            height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: const BoxDecoration(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12))
-            ),
+            color: Colors.transparent, // Drag area
             child: Row(
               children: [
-                const Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white70)),
+                const Icon(Icons.blur_on, size: 16, color: Colors.deepPurpleAccent),
+                const SizedBox(width: 8),
+                const Text("EventHorizon", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white, fontSize: 13, letterSpacing: -0.2)),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.refresh, size: 14, color: Colors.white70),
+                  icon: Icon(Icons.refresh, size: 16, color: Colors.white.withOpacity(0.7)),
                   onPressed: _loadEvents,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
                   splashRadius: 16,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
-                const SizedBox(width: 12),
                 IconButton(
-                  icon: const Icon(Icons.settings, size: 14, color: Colors.white70),
-                  onPressed: () {
-                    // TODO: Open Settings View
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                  icon: Icon(Icons.settings_outlined, size: 16, color: Colors.white.withOpacity(0.7)),
+                  onPressed: () {},
                   splashRadius: 16,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 PopupMenuButton<String>(
-                  offset: const Offset(0, 30),
-                  color: const Color(0xFF2C2C2C),
+                  offset: const Offset(0, 36),
+                  color: Colors.black.withOpacity(0.8),
+                  elevation: 20,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                  ),
                   tooltip: "Account",
-                  child: CircleAvatar(
-                    backgroundImage: NetworkImage(widget.user.photoUrl ?? ''),
-                    radius: 10,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                    ),
+                    child: CircleAvatar(
+                      backgroundImage: NetworkImage(widget.user.photoUrl ?? ''),
+                      radius: 12,
+                    ),
                   ),
                   onSelected: (value) {
-                    if (value == 'logout') {
-                      context.read<AuthService>().signOut();
-                    } else if (value == 'quit') {
-                      windowManager.destroy();
-                    }
+                    if (value == 'logout') context.read<AuthService>().signOut();
+                    if (value == 'quit') windowManager.destroy();
                   },
                   itemBuilder: (BuildContext context) => [
                     PopupMenuItem<String>(
                       enabled: false,
-                      child: Text(
-                        widget.user.email,
-                        style: const TextStyle(fontSize: 11, color: Colors.white54),
-                      ),
+                      height: 30,
+                      child: Text(widget.user.email, style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5))),
                     ),
                     const PopupMenuDivider(),
                     const PopupMenuItem<String>(
                       value: 'logout',
-                      child: Text('Sign Out', style: TextStyle(fontSize: 13)),
+                      height: 32,
+                      child: Text('Sign Out', style: TextStyle(fontSize: 13, color: Colors.white)),
                     ),
                     const PopupMenuItem<String>(
                       value: 'quit',
-                      child: Text('Quit EventHorizon', style: TextStyle(fontSize: 13, color: Colors.redAccent)),
+                      height: 32,
+                      child: Text('Quit', style: TextStyle(fontSize: 13, color: Colors.redAccent)),
                     ),
                   ],
                 ),
@@ -301,48 +314,99 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ),
-        const Divider(height: 1, color: Colors.white12),
-        // Events List
+        Divider(height: 1, color: Colors.white.withOpacity(0.1)),
+        // Mac-style Events List
         Expanded(
           child: _isLoading 
-            ? const Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepPurpleAccent))
             : _events.isEmpty 
-              ? const Center(child: Text("No AI-managed events found.", style: TextStyle(color: Colors.white54)))
-              : ListView.builder(
+              ? Center(child: Text("No Workflows Scheduled", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)))
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: _events.length,
+                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
                   itemBuilder: (context, index) {
                     final event = _events[index];
                     final privateProps = event.extendedProperties?.private;
                     bool hasAiMetadata = privateProps != null && privateProps.isNotEmpty;
 
-                    return ExpansionTile(
-                      leading: Icon(
-                        hasAiMetadata ? Icons.smart_toy : Icons.event,
-                        color: hasAiMetadata ? Colors.deepPurpleAccent : Colors.white54,
+                    return Theme(
+                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // removes ExpansionTile borders
+                      child: ExpansionTile(
+                        iconColor: Colors.white54,
+                        collapsedIconColor: Colors.white38,
+                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        leading: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _formatTime(event.start),
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
+                            ),
+                          ],
+                        ),
+                        title: Text(
+                          event.summary ?? "Untitled",
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                        ),
+                        subtitle: hasAiMetadata 
+                          ? const Text("AI Workflow Attached", style: TextStyle(fontSize: 11, color: Colors.deepPurpleAccent)) 
+                          : null,
+                        children: [
+                          if (hasAiMetadata)
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.4),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text("JSON Payload", style: TextStyle(fontSize: 10, color: Colors.white54)),
+                                      IconButton(
+                                        icon: const Icon(Icons.copy, size: 12, color: Colors.white54),
+                                        onPressed: () {
+                                          Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(privateProps)));
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: const Text('Payload copied to clipboard', style: TextStyle(fontSize: 12)),
+                                              backgroundColor: Colors.deepPurpleAccent.withOpacity(0.8),
+                                              behavior: SnackBarBehavior.floating,
+                                              duration: const Duration(seconds: 2),
+                                            )
+                                          );
+                                        },
+                                        constraints: const BoxConstraints(),
+                                        padding: EdgeInsets.zero,
+                                      )
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SelectableText(
+                                    const JsonEncoder.withIndent('  ').convert(privateProps),
+                                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.greenAccent),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (event.description != null)
+                            Container(
+                              width: double.infinity,
+                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                              child: SelectableText(
+                                event.description!,
+                                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
+                              ),
+                            )
+                        ],
                       ),
-                      title: Text(event.summary ?? "Untitled Workflow"),
-                      subtitle: Text(_formatTime(event.start)),
-                      children: [
-                        if (hasAiMetadata)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            color: Colors.black26,
-                            child: SelectableText(
-                              const JsonEncoder.withIndent('  ').convert(privateProps),
-                              style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.greenAccent),
-                            ),
-                          ),
-                        if (event.description != null)
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            child: SelectableText(
-                              event.description!,
-                              style: const TextStyle(fontSize: 12, color: Colors.white70),
-                            ),
-                          )
-                      ],
                     );
                   },
                 ),
