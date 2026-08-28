@@ -31,5 +31,17 @@
 	<key>LSUIElement</key>
 	<true/>
 
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.280810030636-ngtln4pi10i37pfugiocr3028mabcrtk</string>
+			</array>
+		</dict>
+	</array>
+
 </dict>
 </plist>

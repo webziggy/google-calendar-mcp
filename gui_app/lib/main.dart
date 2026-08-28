@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
+
+import 'services/auth_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -8,7 +11,7 @@ void main() async {
   await windowManager.ensureInitialized();
   
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(380, 600), // Slightly narrower, typical for macOS tray apps
+    size: Size(380, 600),
     center: true,
     backgroundColor: Colors.transparent,
     skipTaskbar: true,       
@@ -21,7 +24,6 @@ void main() async {
 
   await trayManager.setIcon('images/tray_icon.png');
   
-  // Optional: A right-click context menu (optional, can leave empty if we only want the left-click drop down)
   Menu menu = Menu(
     items: [
       MenuItem(
@@ -32,7 +34,12 @@ void main() async {
   );
   await trayManager.setContextMenu(menu);
 
-  runApp(const EventHorizonApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => AuthService(),
+      child: const EventHorizonApp(),
+    ),
+  );
 }
 
 class EventHorizonApp extends StatefulWidget {
@@ -67,11 +74,8 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
       Size windowSize = await windowManager.getSize();
       
       if (trayBounds != null) {
-        // Center the window horizontally beneath the tray icon
         double x = trayBounds.left + (trayBounds.width / 2) - (windowSize.width / 2);
-        // Place the window immediately below the menu bar
         double y = trayBounds.bottom;
-        
         await windowManager.setPosition(Offset(x, y));
       }
       
@@ -83,14 +87,12 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
   @override
   void onTrayMenuItemClick(MenuItem menuItem) {
     if (menuItem.key == 'exit_app') {
-      // Allow the user to cleanly quit the background process
       windowManager.destroy();
     }
   }
 
   @override
   void onWindowBlur() async {
-    // Global click-away: hide the window when the user clicks anywhere else
     await windowManager.hide();
   }
 
@@ -107,13 +109,13 @@ class _EventHorizonAppState extends State<EventHorizonApp> with TrayListener, Wi
           secondary: Colors.blueAccent,
         ),
       ),
-      home: const DashboardView(),
+      home: const MainGatekeeper(),
     );
   }
 }
 
-class DashboardView extends StatelessWidget {
-  const DashboardView({super.key});
+class MainGatekeeper extends StatelessWidget {
+  const MainGatekeeper({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -121,10 +123,9 @@ class DashboardView extends StatelessWidget {
       backgroundColor: Colors.transparent,
       body: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E), // Solid dark background
+          color: const Color(0xFF1E1E1E),
           border: Border.all(color: Colors.white12, width: 1),
           borderRadius: BorderRadius.circular(12),
-          // Add a subtle drop shadow to make it pop against the desktop
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.5),
@@ -135,10 +136,9 @@ class DashboardView extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Header / Drag Area
+            // Drag Header
             GestureDetector(
               onPanUpdate: (details) {
-                // Allows the user to tear the window away from the menu bar!
                 windowManager.startDragging();
               },
               child: Container(
@@ -159,16 +159,95 @@ class DashboardView extends StatelessWidget {
               ),
             ),
             const Divider(height: 1, color: Colors.white12),
-            const Expanded(
-              child: Center(
-                child: Text(
-                  'AI Workflows loading...',
-                  style: TextStyle(color: Colors.white54),
-                ),
+            
+            // Auth State Routing
+            Expanded(
+              child: Consumer<AuthService>(
+                builder: (context, auth, child) {
+                  if (auth.currentUser == null) {
+                    return const LoginScreen();
+                  }
+                  return DashboardScreen(user: auth.currentUser!);
+                },
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.hub, size: 64, color: Colors.deepPurpleAccent),
+          const SizedBox(height: 16),
+          const Text(
+            "Sync your AI Workflows",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 32.0),
+            child: Text(
+              "EventHorizon needs access to your Google Calendar to render the AI dashboard.",
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => context.read<AuthService>().signIn(),
+            icon: const Icon(Icons.login),
+            label: const Text("Sign In with Google"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurpleAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class DashboardScreen extends StatelessWidget {
+  final GoogleSignInAccount user;
+  const DashboardScreen({super.key, required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            backgroundImage: NetworkImage(user.photoUrl ?? ''),
+            radius: 32,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            "Authenticated as",
+            style: const TextStyle(color: Colors.white54),
+          ),
+          Text(
+            user.displayName ?? user.email,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          OutlinedButton(
+            onPressed: () => context.read<AuthService>().signOut(),
+            child: const Text("Sign Out"),
+          )
+        ],
       ),
     );
   }
