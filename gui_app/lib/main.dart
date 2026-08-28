@@ -319,97 +319,162 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Expanded(
           child: _isLoading 
             ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.deepPurpleAccent))
-            : _events.isEmpty 
-              ? Center(child: Text("No Workflows Scheduled", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)))
-              : ListView.separated(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: _events.length,
-                  separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
-                  itemBuilder: (context, index) {
-                    final event = _events[index];
-                    final privateProps = event.extendedProperties?.private;
-                    bool hasAiMetadata = privateProps != null && privateProps.isNotEmpty;
+            : Column(
+                children: [
+                  // Quick Focus Button
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 36,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text('Initiating Deep Work... scheduling 1h block.', style: TextStyle(fontSize: 12)),
+                              backgroundColor: Colors.deepPurpleAccent.withOpacity(0.8),
+                              behavior: SnackBarBehavior.floating,
+                              duration: const Duration(seconds: 2),
+                            )
+                          );
+                          await _calendarService.triggerQuickFocus();
+                          await _loadEvents(); // refresh to show it if AI-Managed
+                        },
+                        icon: const Icon(Icons.center_focus_strong, size: 16),
+                        label: const Text("Quick Focus (1 Hour)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurpleAccent.withOpacity(0.2),
+                          foregroundColor: Colors.deepPurpleAccent.shade100,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            side: BorderSide(color: Colors.deepPurpleAccent.withOpacity(0.5))
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, color: Colors.white12),
+                  // List
+                  Expanded(
+                    child: _events.isEmpty 
+                      ? Center(child: Text("No Workflows Scheduled", style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13)))
+                      : ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: _events.length,
+                          separatorBuilder: (context, index) => Divider(height: 1, color: Colors.white.withOpacity(0.05)),
+                          itemBuilder: (context, index) {
+                            final event = _events[index];
+                            final privateProps = event.extendedProperties?.private;
+                            bool hasAiMetadata = privateProps != null && privateProps.isNotEmpty;
 
-                    return Theme(
-                      data: Theme.of(context).copyWith(dividerColor: Colors.transparent), // removes ExpansionTile borders
-                      child: ExpansionTile(
-                        iconColor: Colors.white54,
-                        collapsedIconColor: Colors.white38,
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        leading: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _formatTime(event.start),
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
-                            ),
-                          ],
-                        ),
-                        title: Text(
-                          event.summary ?? "Untitled",
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
-                        ),
-                        subtitle: hasAiMetadata 
-                          ? const Text("AI Workflow Attached", style: TextStyle(fontSize: 11, color: Colors.deepPurpleAccent)) 
-                          : null,
-                        children: [
-                          if (hasAiMetadata)
-                            Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.4),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.white.withOpacity(0.05)),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            return Theme(
+                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                              child: ExpansionTile(
+                                iconColor: Colors.white54,
+                                collapsedIconColor: Colors.white38,
+                                tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                leading: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      _formatTime(event.start),
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
+                                    ),
+                                  ],
+                                ),
+                                title: Text(
+                                  event.summary ?? "Untitled",
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
+                                ),
+                                subtitle: hasAiMetadata 
+                                  ? const Text("AI Workflow Attached", style: TextStyle(fontSize: 11, color: Colors.deepPurpleAccent)) 
+                                  : null,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text("JSON Payload", style: TextStyle(fontSize: 10, color: Colors.white54)),
-                                      IconButton(
-                                        icon: const Icon(Icons.copy, size: 12, color: Colors.white54),
-                                        onPressed: () {
-                                          Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(privateProps)));
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: const Text('Payload copied to clipboard', style: TextStyle(fontSize: 12)),
-                                              backgroundColor: Colors.deepPurpleAccent.withOpacity(0.8),
-                                              behavior: SnackBarBehavior.floating,
-                                              duration: const Duration(seconds: 2),
-                                            )
-                                          );
-                                        },
-                                        constraints: const BoxConstraints(),
-                                        padding: EdgeInsets.zero,
-                                      )
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SelectableText(
-                                    const JsonEncoder.withIndent('  ').convert(privateProps),
-                                    style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Colors.greenAccent),
-                                  ),
+                                  if (hasAiMetadata)
+                                    Container(
+                                      width: double.infinity,
+                                      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text("CONTEXT PAYLOAD", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white54, letterSpacing: 1.2)),
+                                              IconButton(
+                                                icon: const Icon(Icons.copy, size: 12, color: Colors.white54),
+                                                onPressed: () {
+                                                  Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(privateProps)));
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: const Text('Payload copied to clipboard', style: TextStyle(fontSize: 12)),
+                                                      backgroundColor: Colors.deepPurpleAccent.withOpacity(0.8),
+                                                      behavior: SnackBarBehavior.floating,
+                                                      duration: const Duration(seconds: 2),
+                                                    )
+                                                  );
+                                                },
+                                                constraints: const BoxConstraints(),
+                                                padding: EdgeInsets.zero,
+                                              )
+                                            ],
+                                          ),
+                                          const SizedBox(height: 8),
+                                          // Human-Readable Property Tree
+                                          ...privateProps!.entries.map((entry) {
+                                            return Padding(
+                                              padding: const EdgeInsets.only(bottom: 6.0),
+                                              child: Row(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    "${entry.key}: ", 
+                                                    style: const TextStyle(
+                                                      fontSize: 11, 
+                                                      fontWeight: FontWeight.w600, 
+                                                      color: Colors.deepPurpleAccent
+                                                    )
+                                                  ),
+                                                  Expanded(
+                                                    child: SelectableText(
+                                                      entry.value,
+                                                      style: TextStyle(
+                                                        fontSize: 11, 
+                                                        color: Colors.white.withOpacity(0.8)
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }),
+                                        ],
+                                      ),
+                                    ),
+                                  if (event.description != null)
+                                    Container(
+                                      width: double.infinity,
+                                      margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+                                      child: SelectableText(
+                                        event.description!,
+                                        style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
+                                      ),
+                                    )
                                 ],
                               ),
-                            ),
-                          if (event.description != null)
-                            Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
-                              child: SelectableText(
-                                event.description!,
-                                style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
-                              ),
-                            )
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                            );
+                          },
+                        ),
+                  ),
+                ],
+              ),
         )
       ],
     );
