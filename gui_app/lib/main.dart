@@ -19,9 +19,11 @@ void main() async {
     backgroundColor: Colors.transparent,
     skipTaskbar: true,       
     titleBarStyle: TitleBarStyle.hidden, 
+    windowButtonVisibility: false, // <-- This is the native fix!
   );
 
   await windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.setAsFrameless();
     await windowManager.hide(); 
   });
 
