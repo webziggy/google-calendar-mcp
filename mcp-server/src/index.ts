@@ -83,6 +83,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "get_staged_action",
+        description: "Retrieve the full details of a specific staged action so you can re-present it to the user for approval.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            token: { type: "string" }
+          },
+          required: ["token"],
+        },
+      },
+      {
         name: "cancel_staged_action",
         description: "Cancel a pending staged action, or all of them.",
         inputSchema: {
@@ -251,6 +262,22 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: "Pending Staged Actions:\n" + list }] };
       }
       
+      case "get_staged_action": {
+        const { token } = request.params.arguments as any;
+        const action = stagedActions.get(token);
+        if (!action) {
+          return { content: [{ type: "text", text: "Error: Token " + token + " not found." }] };
+        }
+        
+        let details = "--- STAGED ACTION DETAILS ---\n";
+        details += "Token: " + token + "\n";
+        details += "Action: " + action.type + "\n";
+        details += "Payload: " + JSON.stringify(action.payload, null, 2) + "\n";
+        details += "\nPresent this information to the user and ask if they want to approve it. If approved, call commit_staged_action with token " + token + ".";
+        
+        return { content: [{ type: "text", text: details }] };
+      }
+
       case "cancel_staged_action": {
         const { token } = request.params.arguments as any;
         if (token === "ALL") {
