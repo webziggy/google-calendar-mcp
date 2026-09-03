@@ -15,6 +15,16 @@ import {
 import crypto from "crypto";
 const stagedActions = new Map<string, { type: string; summary: string; payload: any; timestamp: number }>();
 
+
+function getPendingWarning(currentToken: string) {
+  if (stagedActions.size <= 1) return "";
+  const others = Array.from(stagedActions.entries()).filter(([t]) => t !== currentToken);
+  let msg = "\n\n⚠️ IMPORTANT: There are " + others.length + " other pending staged action(s) in the queue:\n";
+  others.forEach(([t, a]) => { msg += `- ${t}: ${a.summary}\n`; });
+  msg += "Please inform the user about these older pending actions and ask if they want to approve or cancel them as well.";
+  return msg;
+}
+
 const server = new Server(
   {
     name: "google-calendar-mcp",
@@ -61,6 +71,26 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             maxResults: { type: "number", description: "Defaults to 100" }
           },
           required: ["calendarId"],
+        },
+      },
+      {
+        name: "list_staged_actions",
+        description: "View all pending staged actions that are waiting for user approval.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+          required: [],
+        },
+      },
+      {
+        name: "cancel_staged_action",
+        description: "Cancel a pending staged action, or all of them.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            token: { type: "string", description: "The token of the action to cancel, or 'ALL' to clear the queue." }
+          },
+          required: ["token"],
         },
       },
       {
@@ -211,6 +241,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(response, null, 2) }] };
       }
       
+      case "list_staged_actions": {
+        if (stagedActions.size === 0) {
+          return { content: [{ type: "text", text: "No pending staged actions." }] };
+        }
+        const list = Array.from(stagedActions.entries()).map(([token, action]) => 
+          `- Token: ${token} | Type: ${action.type} | Summary: ${action.summary}`
+        ).join('\n');
+        return { content: [{ type: "text", text: "Pending Staged Actions:\n" + list }] };
+      }
+      
+      case "cancel_staged_action": {
+        const { token } = request.params.arguments as any;
+        if (token === "ALL") {
+          const count = stagedActions.size;
+          stagedActions.clear();
+          return { content: [{ type: "text", text: `Cleared ${count} pending staged action(s).` }] };
+        }
+        if (stagedActions.has(token)) {
+          stagedActions.delete(token);
+          return { content: [{ type: "text", text: `Cancelled staged action: ${token}.` }] };
+        }
+        return { content: [{ type: "text", text: `Error: Token ${token} not found.` }] };
+      }
+
       case "commit_staged_action": {
         const { token } = request.params.arguments as any;
         const action = stagedActions.get(token);
@@ -260,7 +314,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 - Start: ${payload.startTime}
 
 If the user explicitly approves, call commit_staged_action with token ${token}.`;
-        return { content: [{ type: "text", text: message }] };
+        return { content: [{ type: "text", text: message + getPendingWarning(token) }] };
       }
 
       case "stage_update_event": {
@@ -281,7 +335,7 @@ If the user explicitly approves, call commit_staged_action with token ${token}.`
 - Fields to Update: ${Object.keys(payload).join(', ')}
 
 If the user explicitly approves, call commit_staged_action with token ${token}.`;
-        return { content: [{ type: "text", text: message }] };
+        return { content: [{ type: "text", text: message + getPendingWarning(token) }] };
       }
 
       case "add_event_log": {
@@ -308,7 +362,7 @@ If the user explicitly approves, call commit_staged_action with token ${token}.`
 - Calendar: ${payload.calendarId}
 
 If the user explicitly approves, call commit_staged_action with token ${token}.`;
-        return { content: [{ type: "text", text: message }] };
+        return { content: [{ type: "text", text: message + getPendingWarning(token) }] };
       }
 
       case "export_events_as_markdown": {
