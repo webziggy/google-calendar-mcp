@@ -8,12 +8,12 @@ description: Natural language workflows for querying, scheduling, and modifying 
 This skill teaches the agent how to natively handle common natural language requests ("What's my next meeting?", "Do I have a sync with Bob?", "Where is the Teams link?") using the local Google Calendar MCP Server.
 
 ## 1. Core Guidelines
-- **Permission Awareness:** Always check the `Role` column in the preferences table before attempting a mutation. If a calendar is marked as `reader`, do not attempt to `create_event`, `update_event`, or `delete_event` on it. Fail early and inform the user they lack permissions.
+- **Permission Awareness:** Always check the `Role` column in the preferences table before attempting a mutation. If a calendar is marked as `reader`, do not attempt to `stage_create_event`, `stage_update_event`, or `stage_delete_event` on it. Fail early and inform the user they lack permissions.
 
 - **Preferences Sync (Create/Delete):** If you use the `create_calendar` or `delete_calendar` tools, you MUST immediately update the global preferences via `write_calendar_preferences` to reflect the change. (If creating, always assign it the `AI-Managed` category by default unless otherwise specified).
 - **Drift Detection (Unknown Calendars):** Whenever you call `list_calendars`, cross-reference the output by calling `read_calendar_preferences`. If you detect a calendar that is missing from the file (likely created outside the MCP), you must pause your current workflow and initiate a brief "partial calendar setup" to ask the user how to categorize the new calendar before proceeding.
 
-- **Never Schedule Blindly (Conflict Resolution):** Before calling `create_event` or `update_event`, ALWAYS call `list_events` for that timeframe. If there is a conflict, do not schedule. Calculate the next available 30-minute block and propose it to the user.
+- **Never Schedule Blindly (Conflict Resolution):** Before calling `stage_create_event` or `stage_update_event`, ALWAYS call `list_events` for that timeframe. If there is a conflict, do not schedule. Calculate the next available 30-minute block and propose it to the user.
 - **Timezone Confirmation:** If you haven't scheduled anything recently, explicitly state the timezone you *assume* the user is in (e.g., "I'll schedule this in BST...") to give them a chance to correct you. Always perform strict timezone math if they request a foreign timezone.
 - **Recurring Event Instance Safety:** When modifying or deleting an event, ensure you are interacting with the specific *instance ID* (which `list_events` provides when `singleEvents: true` is set), not the parent series ID, unless explicitly asked to modify the entire series.
 - **Preferences Awareness:** Before scheduling, call the `read_calendar_preferences` tool. If it does, respect the defined working hours, break times, and calendar categories.
@@ -24,7 +24,22 @@ This skill teaches the agent how to natively handle common natural language requ
 
 - **Invitees vs Attendees:** The Google Calendar API does not have a separate `invitees` field. Everyone is grouped inside the `attendees` array. You can determine their RSVP status by checking `attendees[].responseStatus` (e.g., `needsAction`, `accepted`, `declined`).
 
-## 2. Standard Workflows
+
+## 2. The 2-Step Staging Pipeline (Security Enforcement)
+The MCP server enforces a strict cryptographic staging loop for all mutations. You **cannot** modify Google Calendar directly. You must follow these steps:
+1. **Stage the Action:** Call `stage_create_event`, `stage_update_event`, or `stage_delete_event`. The server will NOT contact Google. It will return a string containing a `REQ-xxx` token and a summary of the action.
+2. **Prompt the User:** You MUST stop and present that summary to the user, explicitly asking for their permission to proceed.
+3. **Commit the Action:** Only after the user says "yes", call `commit_staged_action` passing the `REQ-xxx` token to physically execute the change.
+
+### Managing the Staging Queue
+If you stage a new action while older actions are pending, the server will append a `⚠️ IMPORTANT` warning to your tool output. 
+- You MUST inform the user about these ghost jobs.
+- Use `list_staged_actions` to view all pending jobs.
+- Use `get_staged_action` passing a specific token to retrieve its full JSON payload, so you can re-present it to the user and ask if they still want to approve it.
+- Use `cancel_staged_action` passing a token (or `"ALL"`) to discard rejected or abandoned jobs.
+
+
+## 3. Standard Workflows
 
 ### Finding People & Meetings
 When asked "Do I have a meeting with Joe Bloggs tomorrow?":
@@ -50,4 +65,4 @@ When asked "When am I free this afternoon?":
 When asked "Push my 2 PM meeting back by 30 minutes":
 1. Call `list_events` around 2 PM to locate the specific event and obtain its `id` and original duration.
 2. Calculate the new `start` and `end` RFC3339 timestamps.
-3. Call `update_event` passing the new `startTime` and `endTime`.
+3. Call `stage_update_event` passing the new `startTime` and `endTime`.
