@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "tsx test/e2e.test.ts",
     "auth": "tsx scripts/auth-cli.ts",
     "start": "tsx src/index.ts"
   },
