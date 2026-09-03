@@ -12,6 +12,9 @@ import {
   appendEventLog
 } from "./calendar.js";
 
+import crypto from "crypto";
+const stagedActions = new Map<string, { type: string; summary: string; payload: any; timestamp: number }>();
+
 const server = new Server(
   {
     name: "google-calendar-mcp",
@@ -61,7 +64,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "create_event",
+        name: "commit_staged_action",
+        description: "Executes a staged CRUD operation on Google Calendar after the user has explicitly approved it.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            token: { type: "string", description: "The unique token of the staged action." }
+          },
+          required: ["token"],
+        },
+      },
+      {
+        name: "stage_create_event",
         description: "Create a new event/reminder. Uses exact times.",
         inputSchema: {
           type: "object",
@@ -82,7 +96,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "update_event",
+        name: "stage_update_event",
         description: "Update an existing event. Uses read-modify-write to preserve existing data.",
         inputSchema: {
           type: "object",
@@ -116,7 +130,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
-        name: "delete_event",
+        name: "stage_delete_event",
         description: "Delete an event from the calendar.",
         inputSchema: {
           type: "object",
@@ -197,16 +211,77 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(response, null, 2) }] };
       }
       
-      case "create_event": {
-        const { calendarId, title, description, startTime, endTime, timeZone, aiMetadata } = request.params.arguments as any;
-        const event = await createEvent(calendarId, title, description, startTime, endTime, timeZone, aiMetadata);
-        return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
+      case "commit_staged_action": {
+        const { token } = request.params.arguments as any;
+        const action = stagedActions.get(token);
+        
+        if (!action) {
+          return { content: [{ type: "text", text: `Error: Invalid or expired token ${token}.` }] };
+        }
+        
+        let result = "";
+        try {
+          if (action.type === "CREATE") {
+            const { calendarId, title, description, startTime, endTime, timeZone, aiMetadata } = action.payload;
+            const event = await createEvent(calendarId, title, description, startTime, endTime, timeZone, aiMetadata);
+            result = "SUCCESS: " + JSON.stringify(event, null, 2);
+          } else if (action.type === "UPDATE") {
+            const { calendarId, eventId, ...updates } = action.payload;
+            const event = await updateEvent(calendarId, eventId, updates);
+            result = "SUCCESS: " + JSON.stringify(event, null, 2);
+          } else if (action.type === "DELETE") {
+            const { calendarId, eventId } = action.payload;
+            await deleteEvent(calendarId, eventId);
+            result = "SUCCESS: Event deleted.";
+          }
+          
+          stagedActions.delete(token); // Clear token
+          return { content: [{ type: "text", text: result }] };
+        } catch (e: any) {
+          return { content: [{ type: "text", text: `Execution failed: ${e.message}` }] };
+        }
       }
-      
-      case "update_event": {
-        const { calendarId, eventId, ...updates } = request.params.arguments as any;
-        const event = await updateEvent(calendarId, eventId, updates);
-        return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
+
+      case "stage_create_event": {
+        const payload = request.params.arguments as any;
+        const token = "REQ-" + crypto.randomBytes(4).toString("hex");
+        
+        stagedActions.set(token, {
+          type: "CREATE",
+          summary: `Create event '${payload.title}' on calendar ${payload.calendarId}`,
+          payload,
+          timestamp: Date.now()
+        });
+        
+        const message = `Action staged successfully. Present the following summary to the user for approval: 
+- Action: CREATE EVENT
+- Title: ${payload.title}
+- Calendar: ${payload.calendarId}
+- Start: ${payload.startTime}
+
+If the user explicitly approves, call commit_staged_action with token ${token}.`;
+        return { content: [{ type: "text", text: message }] };
+      }
+
+      case "stage_update_event": {
+        const payload = request.params.arguments as any;
+        const token = "REQ-" + crypto.randomBytes(4).toString("hex");
+        
+        stagedActions.set(token, {
+          type: "UPDATE",
+          summary: `Update event ${payload.eventId} on calendar ${payload.calendarId}`,
+          payload,
+          timestamp: Date.now()
+        });
+        
+        const message = `Action staged successfully. Present the following summary to the user for approval: 
+- Action: UPDATE EVENT
+- Event ID: ${payload.eventId}
+- Calendar: ${payload.calendarId}
+- Fields to Update: ${Object.keys(payload).join(', ')}
+
+If the user explicitly approves, call commit_staged_action with token ${token}.`;
+        return { content: [{ type: "text", text: message }] };
       }
 
       case "add_event_log": {
@@ -216,10 +291,24 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text: JSON.stringify(event, null, 2) }] };
       }
       
-      case "delete_event": {
-        const { calendarId, eventId } = request.params.arguments as any;
-        await deleteEvent(calendarId, eventId);
-        return { content: [{ type: "text", text: `Event ${eventId} successfully deleted.` }] };
+      case "stage_delete_event": {
+        const payload = request.params.arguments as any;
+        const token = "REQ-" + crypto.randomBytes(4).toString("hex");
+        
+        stagedActions.set(token, {
+          type: "DELETE",
+          summary: `Delete event ${payload.eventId} on calendar ${payload.calendarId}`,
+          payload,
+          timestamp: Date.now()
+        });
+        
+        const message = `Action staged successfully. Present the following summary to the user for approval: 
+- Action: DELETE EVENT
+- Event ID: ${payload.eventId}
+- Calendar: ${payload.calendarId}
+
+If the user explicitly approves, call commit_staged_action with token ${token}.`;
+        return { content: [{ type: "text", text: message }] };
       }
 
       case "export_events_as_markdown": {
