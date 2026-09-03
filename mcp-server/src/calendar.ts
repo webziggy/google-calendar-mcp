@@ -276,3 +276,11 @@ export async function deleteEvent(calendarId: string, eventId: string) {
   }
   return true;
 }
+
+
+export async function deleteCalendar(calendarId: string) {
+  const calendar = getCalendarClient();
+  await calendar.calendars.delete({
+    calendarId
+  });
+}
