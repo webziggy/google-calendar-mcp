@@ -13,9 +13,11 @@ This project is split into two phases:
 The following tools are exposed to AI agents via the MCP server:
 - `list_calendars`: Retrieve all calendars available to the user.
 - `list_events`: Fetch events for a specific calendar within an optional time range.
-- `create_event`: Create an event/reminder with exact start/end times and inject hidden AI metadata natively.
-- `update_event`: Modify an existing event (uses safe read-modify-write).
-- `delete_event`: Remove an event from the calendar.
+- `stage_create_event`: Stage a new event/reminder in the local server buffer.
+- `stage_update_event`: Stage a modification to an existing event.
+- `stage_delete_event`: Stage the removal of an event.
+- `commit_staged_action`: Execute a staged action after explicit user approval, using its cryptographic token.
+- `list_staged_actions` / `get_staged_action` / `cancel_staged_action`: Manage the pending approval queue.
 - `read_calendar_preferences`: Retrieve the user's global working hours and routing rules.
 - `write_calendar_preferences`: Save the user's global working hours and routing rules.
 
@@ -38,6 +40,16 @@ All credentials are stored strictly in local `.env` files. No third-party gatewa
 ### Agent Usage Guidelines
 - **Pagination Limit:** Agents are strictly instructed not to paginate through `list_events` more than 3 times without explicit user consent to prevent API rate limits and timeouts.
 - **Legacy Schemas:** Agents must check the `_schema_version` of hidden metadata and prompt the user if they encounter an unmappable legacy schema.
+
+## 🛡️ Security: The Staged Execution Pipeline
+Calendar data is highly sensitive. To physically prevent an AI from hallucinating and blindly modifying or deleting your events, this MCP server enforces a **Staged Execution Pipeline**.
+
+1. **Staging:** The AI **cannot** write to the Google Calendar API directly. It must call a `stage_` tool (e.g., `stage_delete_event`). 
+2. **The Buffer:** The server caches the payload locally and generates a cryptographic token (e.g., `REQ-a1b2c3`).
+3. **User Approval:** The server forcefully intercepts the AI's tool call, injecting a prompt that commands the AI to stop and ask the user for explicit permission to proceed.
+4. **Execution:** Only if the user says "yes" can the AI call `commit_staged_action` with the required token.
+
+If the AI stages multiple jobs and forgets about them, the server becomes self-aware of its own queue and natively injects ⚠️ Warnings into future tool responses, forcing the AI to ask you to clear the ghost jobs!
 
 ## Handling Multiple Accounts (Personal + Work)
 Many users need to manage both a personal Google Calendar and an enterprise Google Workspace calendar. 
